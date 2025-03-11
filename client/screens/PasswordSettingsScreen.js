@@ -39,7 +39,7 @@ const PasswordSettingsScreen = ({ navigation }) => {
         }
 
         try {
-            await axios.put('http://192.168.202.192:5000/api/user/changePassword', { currentPassword, newPassword }, {
+            await axios.put('https://chatfun-backend.onrender.com/api/user/changePassword', { currentPassword, newPassword }, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },

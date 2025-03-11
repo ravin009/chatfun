@@ -25,7 +25,7 @@ const ResetPasswordScreen = ({ navigation }) => {
         }
 
         try {
-            const res = await axios.post('http://192.168.202.192:5000/api/auth/reset-password', { email, otp, newPassword });
+            const res = await axios.post('https://chatfun-backend.onrender.com/api/auth/reset-password', { email, otp, newPassword });
             setAlertTitle('Success');
             setAlertMessage('Password reset successful');
             setAlertType('success'); // Set alert type to success

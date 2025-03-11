@@ -1,4 +1,4 @@
-const overrideConsole = require('../utils/overrideConsole');
+const overrideConsole = require('../utils/consoleOverride');
 overrideConsole();
 
 
@@ -10,6 +10,7 @@ const connectDB = async () => {
         await mongoose.connect(process.env.MONGO_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 30000 // 30 seconds
         });
         console.log('MongoDB connected');
     } catch (err) {

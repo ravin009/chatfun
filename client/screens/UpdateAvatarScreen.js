@@ -9,7 +9,7 @@ import AvatarPicker from '../components/AvatarPicker';
 
 const UpdateAvatarScreen = ({ navigation }) => {
     const { user, setUser } = useContext(AuthContext);
-    const [avatar, setAvatar] = useState(user.avatar ? `http://192.168.202.192:5000/${user.avatar}` : null);
+    const [avatar, setAvatar] = useState(user.avatar ? `https://chatfun-backend.onrender.com/${user.avatar}` : null);
 
     const handleUpdateAvatar = async () => {
         const token = await AsyncStorage.getItem('token'); 
@@ -32,14 +32,14 @@ const UpdateAvatarScreen = ({ navigation }) => {
         }
 
         try {
-            const res = await axios.put('http://192.168.202.192:5000/api/user/updateAvatar', formData, {
+            const res = await axios.put('https://chatfun-backend.onrender.com/api/user/updateAvatar', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}`,
                 },
             });
             setUser(res.data);
-            setAvatar(res.data.avatar ? `http://192.168.202.192:5000/${res.data.avatar}?${new Date().getTime()}` : null); // Add cache-busting query parameter
+            setAvatar(res.data.avatar ? `https://chatfun-backend.onrender.com/${res.data.avatar}?${new Date().getTime()}` : null); // Add cache-busting query parameter
             Alert.alert('Success', 'Avatar updated successfully');
             navigation.goBack();
         } catch (err) {

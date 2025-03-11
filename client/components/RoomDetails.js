@@ -19,7 +19,7 @@ const RoomDetails = ({ route, navigation }) => {
     }, [rooms, roomId]);
 
     useEffect(() => {
-        const socket = io('http://192.168.202.192:5000');
+        const socket = io('https://chatfun-backend.onrender.com');
         if (user && roomId) {
             socket.emit('joinRoom', { userId: user._id, roomId });
 

@@ -9,7 +9,7 @@ import ProfilePicture from '../components/ProfilePicture';
 
 const UpdateProfilePictureScreen = ({ navigation }) => {
     const { user, setUser } = useContext(AuthContext);
-    const [profilePicture, setProfilePicture] = useState(user.profilePicture ? `http://192.168.202.192:5000/${user.profilePicture}` : null);
+    const [profilePicture, setProfilePicture] = useState(user.profilePicture ? `https://chatfun-backend.onrender.com/${user.profilePicture}` : null);
 
     const handleUpdateProfilePicture = async () => {
         const token = await AsyncStorage.getItem('token'); 
@@ -32,14 +32,14 @@ const UpdateProfilePictureScreen = ({ navigation }) => {
         }
 
         try {
-            const res = await axios.put('http://192.168.202.192:5000/api/user/updateProfilePicture', formData, {
+            const res = await axios.put('https://chatfun-backend.onrender.com/api/user/updateProfilePicture', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}`,
                 },
             });
             setUser(res.data);
-            setProfilePicture(res.data.profilePicture ? `http://192.168.202.192:5000/${res.data.profilePicture}` : null);
+            setProfilePicture(res.data.profilePicture ? `https://chatfun-backend.onrender.com/${res.data.profilePicture}` : null);
             Alert.alert('Success', 'Profile picture updated successfully');
             navigation.goBack();
         } catch (err) {

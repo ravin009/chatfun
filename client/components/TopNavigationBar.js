@@ -69,7 +69,7 @@ const TopNavigationBar = ({ navigation, handleRoomInfo, showNavBar, setShowNavBa
     }, [showNavBar, pan]);
 
     useEffect(() => {
-        const socket = io('http://192.168.202.192:5000');
+        const socket = io('https://chatfun-backend.onrender.com');
         if (user && roomId) {
             socket.emit('joinRoom', { userId: user._id, roomId });
 
@@ -98,7 +98,7 @@ const TopNavigationBar = ({ navigation, handleRoomInfo, showNavBar, setShowNavBa
 
     const handleLogout = async () => {
         if (user && user._id) {
-            const socket = io('http://192.168.202.192:5000');
+            const socket = io('https://chatfun-backend.onrender.com');
             socket.emit('leaveRoom', { userId: user._id, roomId });
             socket.emit('userOffline', user._id);
             socket.disconnect();

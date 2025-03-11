@@ -27,7 +27,7 @@ const ChatScreen = ({ navigation, route }) => {
     const [messages, setMessages] = useState([]);
     const { user, setUser, logout, addFriend, removeFriend, blockUser, unblockUser, isFriend, isBlocked, sendPrivateMessage, getPrivateMessages, markAsRead, unreadMessages, setUnreadMessages, isAdmin, setAlertTitle, setAlertMessage, setAlertType, setAlertVisible, setAlertOnConfirm, setAlertOnCancel } = useContext(AuthContext);
     const { rooms, setReadOnly, removeReadOnly } = useContext(RoomContext);
-    const socket = useRef(io('http://192.168.202.192:5000')).current;
+    const socket = useRef(io('https://chatfun-backend.onrender.com')).current;
     const [userOptionsVisible, setUserOptionsVisible] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [selectedUserProfile, setSelectedUserProfile] = useState(null); // Add this line
@@ -74,7 +74,7 @@ const ChatScreen = ({ navigation, route }) => {
     useEffect(() => {
         const fetchDefaultRoomId = async () => {
             try {
-                const res = await axios.get('http://192.168.202.192:5000/api/default-room');
+                const res = await axios.get('https://chatfun-backend.onrender.com/api/default-room');
                 setDefaultRoomId(res.data.roomId);
             } catch (err) {
                 console.error('Error fetching default room ID:', err.response ? err.response.data : err.message);
@@ -103,7 +103,7 @@ const ChatScreen = ({ navigation, route }) => {
         socket.on('privateMessage', async (message) => {
             console.log('Received private message:', message);
             if (!message.senderId || typeof message.senderId === 'string') {
-                const senderRes = await axios.get(`http://192.168.202.192:5000/api/user/${message.senderId}`);
+                const senderRes = await axios.get(`https://chatfun-backend.onrender.com/api/user/${message.senderId}`);
                 message.senderId = senderRes.data;
             }
             setPrivateMessages((prevMessages) => [...prevMessages, message]);
@@ -116,7 +116,7 @@ const ChatScreen = ({ navigation, route }) => {
         socket.on('privateMessageNotification', async (message) => {
             console.log('Received private message notification:', message);
             if (!message.senderId || typeof message.senderId === 'string') {
-                const senderRes = await axios.get(`http://192.168.202.192:5000/api/user/${message.senderId}`);
+                const senderRes = await axios.get(`https://chatfun-backend.onrender.com/api/user/${message.senderId}`);
                 message.senderId = senderRes.data;
             }
             if (message.recipientId === user._id && !message.isRead) {
@@ -153,7 +153,7 @@ const ChatScreen = ({ navigation, route }) => {
                 const token = await AsyncStorage.getItem('token');
                 if (token) {
                     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                    const res = await axios.get(`http://192.168.202.192:5000/api/chat/${roomId || defaultRoomId}`);
+                    const res = await axios.get(`https://chatfun-backend.onrender.com/api/chat/${roomId || defaultRoomId}`);
                     const fetchedMessages = res.data;
 
                     const filteredMessages = user ? fetchedMessages.filter(chat => chat.userId && !user.blockedUsers.includes(chat.userId._id)) : fetchedMessages;
@@ -190,7 +190,7 @@ const ChatScreen = ({ navigation, route }) => {
             if (message.trim()) {
                 const newMessage = { roomId: roomId || defaultRoomId, message, userId: user._id, nickname: user.nickname, avatar: user.avatar, nicknameColor: user.nicknameColor, chatTextColor: user.chatTextColor };
                 try {
-                    const roomRes = await axios.get(`http://192.168.202.192:5000/api/rooms/${newMessage.roomId}`);
+                    const roomRes = await axios.get(`https://chatfun-backend.onrender.com/api/rooms/${newMessage.roomId}`);
                     if (!roomRes.data) {
                         throw new Error('Room not found');
                     }
@@ -203,13 +203,13 @@ const ChatScreen = ({ navigation, route }) => {
                         return;
                     }
 
-                    const res = await axios.post('http://192.168.202.192:5000/api/chat/send', newMessage);
+                    const res = await axios.post('https://chatfun-backend.onrender.com/api/chat/send', newMessage);
                     console.log('Message sent:', res.data);
                     socket.emit('message', res.data);
                     flatListRef.current.scrollToEnd({ animated: true });
 
                     // Increment the rating only once
-                    const ratingRes = await axios.put('http://192.168.202.192:5000/api/user/increment-rating');
+                    const ratingRes = await axios.put('https://chatfun-backend.onrender.com/api/user/increment-rating');
                     setUser((prevUser) => ({ ...prevUser, rating: ratingRes.data.rating }));
                 } catch (err) {
                     console.error('Error sending message:', err.response ? err.response.data : err.message);
@@ -251,7 +251,7 @@ const ChatScreen = ({ navigation, route }) => {
 
                 try {
                     // Check if the user is banned
-                    const userRes = await axios.get(`http://192.168.202.192:5000/api/user/${user._id}`);
+                    const userRes = await axios.get(`https://chatfun-backend.onrender.com/api/user/${user._id}`);
                     if (userRes.data.isBanned) {
                         setAlertTitle('Banned');
                         setAlertMessage('You are banned from sending messages.');
@@ -260,7 +260,7 @@ const ChatScreen = ({ navigation, route }) => {
                         return;
                     }
 
-                    const roomRes = await axios.get(`http://192.168.202.192:5000/api/rooms/${roomId || defaultRoomId}`);
+                    const roomRes = await axios.get(`https://chatfun-backend.onrender.com/api/rooms/${roomId || defaultRoomId}`);
                     if (!roomRes.data) {
                         throw new Error('Room not found');
                     }
@@ -273,7 +273,7 @@ const ChatScreen = ({ navigation, route }) => {
                         return;
                     }
 
-                    const res = await axios.post('http://192.168.202.192:5000/api/chat/send-image', formData, {
+                    const res = await axios.post('https://chatfun-backend.onrender.com/api/chat/send-image', formData, {
                         headers: {
                             'Content-Type': 'multipart/form-data',
                         },
@@ -285,7 +285,7 @@ const ChatScreen = ({ navigation, route }) => {
                     flatListRef.current.scrollToEnd({ animated: true });
 
                     try {
-                        const ratingRes = await axios.put('http://192.168.202.192:5000/api/user/increment-rating');
+                        const ratingRes = await axios.put('https://chatfun-backend.onrender.com/api/user/increment-rating');
                         setUser((prevUser) => ({ ...prevUser, rating: ratingRes.data.rating }));
                     } catch (err) {
                         console.error('Error incrementing rating:', err.response ? err.response.data : err.message);
@@ -356,7 +356,7 @@ const ChatScreen = ({ navigation, route }) => {
         }
         try {
             console.log('User before adding friend:', user);
-            const res = await axios.put(`http://192.168.202.192:5000/api/user/add-friend/${friendId}`);
+            const res = await axios.put(`https://chatfun-backend.onrender.com/api/user/add-friend/${friendId}`);
             setUser((prevUser) => ({
                 ...prevUser,
                 friends: [...prevUser.friends, res.data.friends.find(friend => friend._id === friendId)]
@@ -383,7 +383,7 @@ const ChatScreen = ({ navigation, route }) => {
         }
         try {
             console.log('User before removing friend:', user);
-            const res = await axios.put(`http://192.168.202.192:5000/api/user/remove-friend/${friendId}`);
+            const res = await axios.put(`https://chatfun-backend.onrender.com/api/user/remove-friend/${friendId}`);
             setUser((prevUser) => ({
                 ...prevUser,
                 friends: prevUser.friends.filter(friend => friend._id !== friendId)
@@ -410,7 +410,7 @@ const ChatScreen = ({ navigation, route }) => {
         }
         try {
             console.log('User before blocking user:', user);
-            const res = await axios.put(`http://192.168.202.192:5000/api/user/block-user/${blockedUserId}`);
+            const res = await axios.put(`https://chatfun-backend.onrender.com/api/user/block-user/${blockedUserId}`);
             setUser((prevUser) => ({
                 ...prevUser,
                 blockedUsers: [...prevUser.blockedUsers, res.data.blockedUsers.find(blockedUser => blockedUser._id === blockedUserId)]
@@ -437,7 +437,7 @@ const ChatScreen = ({ navigation, route }) => {
         }
         try {
             console.log('User before unblocking user:', user);
-            const res = await axios.put(`http://192.168.202.192:5000/api/user/unblock-user/${blockedUserId}`);
+            const res = await axios.put(`https://chatfun-backend.onrender.com/api/user/unblock-user/${blockedUserId}`);
             setUser((prevUser) => ({
                 ...prevUser,
                 blockedUsers: prevUser.blockedUsers.filter(blockedUser => blockedUser._id !== blockedUserId)
@@ -493,7 +493,7 @@ const ChatScreen = ({ navigation, route }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.put('http://192.168.202.192:5000/api/user/ban-user', { userId });
+            const res = await axios.put('https://chatfun-backend.onrender.com/api/user/ban-user', { userId });
             setAlertTitle('Success');
             setAlertMessage('User banned successfully.');
             setAlertType('success');
@@ -514,7 +514,7 @@ const ChatScreen = ({ navigation, route }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.put('http://192.168.202.192:5000/api/user/unban-user', { userId });
+            const res = await axios.put('https://chatfun-backend.onrender.com/api/user/unban-user', { userId });
             setAlertTitle('Success');
             setAlertMessage('User unbanned successfully.');
             setAlertType('success');
@@ -535,7 +535,7 @@ const ChatScreen = ({ navigation, route }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.put('http://192.168.202.192:5000/api/admin/set-role', { userId, role, action });
+            const res = await axios.put('https://chatfun-backend.onrender.com/api/admin/set-role', { userId, role, action });
             setAlertTitle('Success');
             setAlertMessage(`Role ${action === 'add' ? 'added to' : 'removed from'} user.`);
             setAlertType('success');
@@ -557,7 +557,7 @@ const ChatScreen = ({ navigation, route }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.get(`http://192.168.202.192:5000/api/user/${userId}`);
+            const res = await axios.get(`https://chatfun-backend.onrender.com/api/user/${userId}`);
             setSelectedUserProfile(res.data);
             setSelectedUserId(userId);
             setUserOptionsVisible(true);
@@ -579,7 +579,7 @@ const ChatScreen = ({ navigation, route }) => {
             console.log('Fetching user profile for userId:', userId);
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.get(`http://192.168.202.192:5000/api/user/${userId}`);
+            const res = await axios.get(`https://chatfun-backend.onrender.com/api/user/${userId}`);
             setSelectedUserProfile(res.data);
             setProfileViewVisible(true);
             setUserOptionsVisible(false);
@@ -600,7 +600,7 @@ const ChatScreen = ({ navigation, route }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.get(`http://192.168.202.192:5000/api/user/${userId}`);
+            const res = await axios.get(`https://chatfun-backend.onrender.com/api/user/${userId}`);
             setPrivateMessageRecipient(userId);
             setPrivateMessageRecipientGender(res.data.gender);
             setPrivateMessageRecipientNickname(res.data.nickname);

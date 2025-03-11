@@ -125,7 +125,7 @@ const ProfileViewModal = ({ visible, onClose, userId, onSendMessage }) => {
             try {
                 const token = await AsyncStorage.getItem('token');
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                const res = await axios.get(`http://192.168.202.192:5000/api/user/${userId}`);
+                const res = await axios.get(`https://chatfun-backend.onrender.com/api/user/${userId}`);
                 setProfile(res.data);
             } catch (err) {
                 console.error('Error fetching profile:', err.response ? err.response.data : err.message);
@@ -229,7 +229,7 @@ const ProfileViewModal = ({ visible, onClose, userId, onSendMessage }) => {
                         <View style={styles.profileModalContent}>
                             {profile && (
                                 <>
-                                    <Image source={{ uri: `http://192.168.202.192:5000/${profile.profilePicture}` }} style={styles.profilePicture} />
+                                    <Image source={{ uri: `https://chatfun-backend.onrender.com/${profile.profilePicture}` }} style={styles.profilePicture} />
                                     <TouchableOpacity style={styles.closeButton} onPress={handleCloseProfilePicture}>
                                         <Text style={styles.buttonText}>Close</Text>
                                     </TouchableOpacity>
@@ -248,7 +248,7 @@ const ProfileViewModal = ({ visible, onClose, userId, onSendMessage }) => {
                         <View style={styles.profileModalContent}>
                             {profile && (
                                 <>
-                                    <Image source={{ uri: `http://192.168.202.192:5000/${profile.avatar}` }} style={styles.profilePicture} />
+                                    <Image source={{ uri: `https://chatfun-backend.onrender.com/${profile.avatar}` }} style={styles.profilePicture} />
                                     <TouchableOpacity style={styles.closeButton} onPress={handleCloseAvatar}>
                                         <Text style={styles.buttonText}>Close</Text>
                                     </TouchableOpacity>

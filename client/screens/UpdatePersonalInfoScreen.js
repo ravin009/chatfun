@@ -35,7 +35,7 @@ const UpdatePersonalInfoScreen = ({ navigation }) => {
         formData.append('bio', bio);
 
         try {
-            const res = await axios.put('http://192.168.202.192:5000/api/user/update', formData, {
+            const res = await axios.put('https://chatfun-backend.onrender.com/api/user/update', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}`,

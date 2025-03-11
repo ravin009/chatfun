@@ -19,7 +19,7 @@ const AdminPanelScreen = ({ navigation }) => {
             try {
                 const token = await AsyncStorage.getItem('token');
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                const res = await axios.get('http://192.168.202.192:5000/api/user');
+                const res = await axios.get('https://chatfun-backend.onrender.com/api/user');
                 setUsers(res.data);
             } catch (err) {
                 console.error('Error fetching users:', err.response ? err.response.data : err.message);
@@ -37,7 +37,7 @@ const AdminPanelScreen = ({ navigation }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            await axios.put('http://192.168.202.192:5000/api/admin/set-role', { userId, role, action });
+            await axios.put('https://chatfun-backend.onrender.com/api/admin/set-role', { userId, role, action });
             Alert.alert('Success', `Role ${action === 'add' ? 'added to' : 'removed from'} user.`);
             setModalVisible(false);
         } catch (err) {

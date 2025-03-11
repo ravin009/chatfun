@@ -55,14 +55,14 @@ const PrivateChatScreen = ({ route, navigation }) => {
     );
 
     useEffect(() => {
-        socket.current = io('http://192.168.202.192:5000');
+        socket.current = io('https://chatfun-backend.onrender.com');
 
         const fetchMessages = async () => {
             setLoading(true);
             try {
                 const token = await AsyncStorage.getItem('token');
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                const res = await axios.get('http://192.168.202.192:5000/api/private-messages');
+                const res = await axios.get('https://chatfun-backend.onrender.com/api/private-messages');
                 const privateMessages = res.data.filter(
                     msg => (msg.senderId._id === user._id && msg.recipientId._id === userId) ||
                            (msg.senderId._id === userId && msg.recipientId._id === user._id)
@@ -90,10 +90,10 @@ const PrivateChatScreen = ({ route, navigation }) => {
         socket.current.on('privateMessage', (newMessage) => {
             if ((newMessage.senderId === userId && newMessage.recipientId === user._id) ||
                 (newMessage.senderId === user._id && newMessage.recipientId === userId)) {
-                axios.get(`http://192.168.202.192:5000/api/user/${newMessage.senderId}`)
+                axios.get(`https://chatfun-backend.onrender.com/api/user/${newMessage.senderId}`)
                     .then(senderRes => {
                         newMessage.senderId = senderRes.data;
-                        axios.get(`http://192.168.202.192:5000/api/user/${newMessage.recipientId}`)
+                        axios.get(`https://chatfun-backend.onrender.com/api/user/${newMessage.recipientId}`)
                             .then(recipientRes => {
                                 newMessage.recipientId = recipientRes.data;
                                 setMessages((prevMessages) => {
