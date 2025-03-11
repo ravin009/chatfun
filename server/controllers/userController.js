@@ -1,8 +1,18 @@
+const overrideConsole = require('../utils/consoleOverride');
+overrideConsole();
+
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// Ensure the uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+}
 
 // Set up multer for profile picture and avatar uploads
 const storage = multer.diskStorage({
@@ -277,7 +287,11 @@ exports.updateEmail = async (req, res) => {
         res.json(user);
     } catch (err) {
         console.error('Error in updateEmail:', err);
-        res.status(500).json({ error: err.message });
+        if (err.errors && err.errors.email) {
+            res.status(400).json({ error: 'Invalid E-Mail format' });
+        } else {
+            res.status(500).json({ error: err.message });
+        }
     }
 };
 
@@ -337,5 +351,93 @@ exports.updatePrivacySetting = async (req, res) => {
     } catch (err) {
         console.error('Error in updatePrivacySetting:', err);
         res.status(500).json({ error: err.message });
+    }
+};
+
+exports.banUser = async (req, res) => {
+    const { userId } = req.body;
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const currentUser = await User.findById(req.user.id);
+        if (!currentUser) {
+            return res.status(404).json({ error: 'Current user not found' });
+        }
+
+        const restrictedRoles = ['Admin', 'Moderator', 'Super Moderator', 'Co-Admin'];
+        const isCurrentUserRestricted = currentUser.roles.some(role => restrictedRoles.includes(role));
+        const isTargetUserRestricted = user.roles.some(role => restrictedRoles.includes(role));
+
+        // Admins can ban anyone
+        if (currentUser.roles.includes('Admin')) {
+            user.isBanned = true;
+            await user.save();
+            return res.json(user);
+        }
+
+        // Check if the target user has restricted roles
+        if (isTargetUserRestricted) {
+            return res.status(403).json({ error: 'You cannot ban a user with Admin, Moderator, Super Moderator, or Co-Admin roles' });
+        }
+
+        // Check if the current user has restricted roles and is trying to ban a normal user
+        if (isCurrentUserRestricted && !isTargetUserRestricted) {
+            user.isBanned = true;
+            await user.save();
+            return res.json(user);
+        }
+
+        // If none of the above conditions are met, the current user does not have permission to ban users
+        return res.status(403).json({ error: 'You do not have permission to ban users' });
+    } catch (err) {
+        console.error('Error in banUser:', err);
+        res.status(500).json({ error: 'Server error. Please try again later.' });
+    }
+};
+
+exports.unbanUser = async (req, res) => {
+    const { userId } = req.body;
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const currentUser = await User.findById(req.user.id);
+        if (!currentUser) {
+            return res.status(404).json({ error: 'Current user not found' });
+        }
+
+        const restrictedRoles = ['Admin', 'Moderator', 'Super Moderator', 'Co-Admin'];
+        const isCurrentUserRestricted = currentUser.roles.some(role => restrictedRoles.includes(role));
+        const isTargetUserRestricted = user.roles.some(role => restrictedRoles.includes(role));
+
+        // Admins can unban anyone
+        if (currentUser.roles.includes('Admin')) {
+            user.isBanned = false;
+            await user.save();
+            return res.json(user);
+        }
+
+        // Check if the target user has restricted roles
+        if (isTargetUserRestricted) {
+            return res.status(403).json({ error: 'You cannot unban a user with Admin, Moderator, Super Moderator, or Co-Admin roles' });
+        }
+
+        // Check if the current user has restricted roles and is trying to unban a normal user
+        if (isCurrentUserRestricted && !isTargetUserRestricted) {
+            user.isBanned = false;
+            await user.save();
+            return res.json(user);
+        }
+
+        // If none of the above conditions are met, the current user does not have permission to unban users
+        return res.status(403).json({ error: 'You do not have permission to unban users' });
+    } catch (err) {
+        console.error('Error in unbanUser:', err);
+        res.status(500).json({ error: 'Server error. Please try again later.' });
     }
 };

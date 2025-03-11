@@ -42,7 +42,7 @@ const InboxScreen = ({ navigation }) => {
                 // Fetch user details for each conversation
                 const updatedConversations = await Promise.all(
                     sortedConversations.map(async (conversation) => {
-                        const userRes = await axios.get(`http://192.168.172.192:5000/api/user/${conversation.otherUser._id}`);
+                        const userRes = await axios.get(`http://192.168.202.192:5000/api/user/${conversation.otherUser._id}`);
                         return { ...conversation, otherUser: userRes.data };
                     })
                 );

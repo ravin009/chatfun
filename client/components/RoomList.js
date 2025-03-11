@@ -22,7 +22,7 @@ const RoomList = ({ navigation }) => {
                 try {
                     const counts = {};
                     for (const room of rooms) {
-                        const res = await axios.get(`http://192.168.172.192:5000/api/rooms/${room.roomId}/user-counts`);
+                        const res = await axios.get(`http://192.168.202.192:5000/api/rooms/${room.roomId}/user-counts`);
                         counts[room.roomId] = res.data;
                     }
                     setUserCounts(counts);
@@ -51,7 +51,7 @@ const RoomList = ({ navigation }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.get(`http://192.168.172.192:5000/api/rooms/${roomId}`);
+            const res = await axios.get(`http://192.168.202.192:5000/api/rooms/${roomId}`);
             navigation.navigate('Chat', { roomId: res.data.roomId });
         } catch (err) {
             if (err.response && err.response.status === 403) {

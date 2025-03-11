@@ -14,7 +14,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
     const handleForgotPassword = async () => {
         try {
-            await axios.post('http://192.168.172.192:5000/api/auth/send-reset-password-otp', { email });
+            await axios.post('http://192.168.202.192:5000/api/auth/send-reset-password-otp', { email });
             setAlertTitle('Success');
             setAlertMessage('OTP sent to your email');
             setAlertType('success'); // Set alert type to success

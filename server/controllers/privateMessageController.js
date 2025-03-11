@@ -1,3 +1,6 @@
+const overrideConsole = require('../utils/consoleOverride');
+overrideConsole();
+
 const PrivateMessage = require('../models/PrivateMessage');
 const User = require('../models/User');
 
@@ -10,6 +13,11 @@ exports.sendPrivateMessage = async (req, res) => {
     }
 
     try {
+        const sender = await User.findById(senderId);
+        if (sender.isBanned) {
+            return res.status(403).json({ error: 'You are banned from sending private messages.' });
+        }
+
         const recipient = await User.findById(recipientId);
         if (!recipient) {
             return res.status(404).json({ error: 'Recipient not found' });
@@ -24,7 +32,6 @@ exports.sendPrivateMessage = async (req, res) => {
         await privateMessage.save();
 
         // Increment the rating for the sender
-        const sender = await User.findById(senderId);
         sender.privateMessageCount = (sender.privateMessageCount || 0) + 1;
         sender.rating += 1;
         await sender.save();
@@ -66,10 +73,10 @@ exports.getPrivateMessages = async (req, res) => {
         const privateMessages = await PrivateMessage.find({
             $or: [{ senderId: userId }, { recipientId: userId }]
         })
-        .sort({ createdAt: -1 }) // Sort by newest first
-        .limit(70) // Limit to the latest 70 messages
-        .populate('senderId', 'nickname avatar')
-        .populate('recipientId', 'nickname avatar');
+            .sort({ createdAt: -1 }) // Sort by newest first
+            .limit(70) // Limit to the latest 70 messages
+            .populate('senderId', 'nickname avatar')
+            .populate('recipientId', 'nickname avatar');
 
         res.json(privateMessages.reverse()); // Reverse to get the oldest first
     } catch (err) {

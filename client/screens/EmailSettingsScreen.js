@@ -28,13 +28,13 @@ const EmailSettingsScreen = ({ navigation }) => {
         }
 
         try {
-            const res = await axios.put('http://192.168.172.192:5000/api/user/updateEmail', { email }, {
+            const res = await axios.put('http://192.168.202.192:5000/api/user/updateEmail', { email }, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
             // Re-fetch user data
-            const userRes = await axios.get('http://192.168.172.192:5000/api/auth/me', {
+            const userRes = await axios.get('http://192.168.202.192:5000/api/auth/me', {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },

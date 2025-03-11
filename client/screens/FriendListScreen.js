@@ -4,11 +4,15 @@ import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AuthContext from '../context/AuthContext';
 import Avatar from '../components/Avatar';
+import ProfileViewModal from '../components/ProfileViewModal'; // Import ProfileViewModal
 
 const FriendListScreen = ({ navigation }) => {
-    const { user, removeFriend } = useContext(AuthContext);
+    const { user, removeFriend, blockUser, unblockUser, isBlocked } = useContext(AuthContext);
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredFriends, setFilteredFriends] = useState(user.friends);
+    const [selectedFriend, setSelectedFriend] = useState(null);
+    const [profileModalVisible, setProfileModalVisible] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState(null);
 
     useEffect(() => {
         if (searchQuery.trim() === '') {
@@ -22,6 +26,23 @@ const FriendListScreen = ({ navigation }) => {
             setFilteredFriends(filtered);
         }
     }, [searchQuery, user.friends]);
+
+    const handleViewProfile = (friendId) => {
+        setSelectedUserId(friendId);
+        setProfileModalVisible(true);
+    };
+
+    const handlePrivateMessage = (friend) => {
+        navigation.navigate('PrivateChat', { userId: friend._id, nickname: friend.nickname, avatar: friend.avatar });
+    };
+
+    const handleBlockUser = async (friend) => {
+        if (isBlocked(friend._id)) {
+            await unblockUser(friend._id);
+        } else {
+            await blockUser(friend._id);
+        }
+    };
 
     return (
         <LinearGradient
@@ -44,20 +65,54 @@ const FriendListScreen = ({ navigation }) => {
             <ScrollView contentContainerStyle={styles.scrollViewContent} showsVerticalScrollIndicator={false}>
                 {filteredFriends.length > 0 ? (
                     filteredFriends.map(friend => (
-                        <View key={friend._id} style={styles.friendItem}>
-                            <View style={styles.avatarContainer}>
-                                <Avatar avatarPath={friend.avatar} style={styles.avatar} />
-                                <Text style={styles.friendNickname}>{friend.nickname}</Text>
+                        <View key={friend._id}>
+                            <View style={styles.friendItem}>
+                                <View style={styles.avatarContainer}>
+                                    <Avatar avatarPath={friend.avatar} style={styles.avatar} />
+                                    <Text style={styles.friendNickname}>{friend.nickname}</Text>
+                                </View>
+                                <View style={styles.iconContainer}>
+                                    <TouchableOpacity onPress={() => setSelectedFriend(selectedFriend === friend._id ? null : friend._id)}>
+                                        <FontAwesome name={selectedFriend === friend._id ? "chevron-up" : "chevron-down"} size={16} color="white" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.removeButton} onPress={() => removeFriend(friend._id)}>
+                                        <FontAwesome name="times" size={16} color="white" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                            <TouchableOpacity style={styles.removeButton} onPress={() => removeFriend(friend._id)}>
-                                <FontAwesome name="times" size={16} color="white" />
-                            </TouchableOpacity>
+                            {selectedFriend === friend._id && (
+                                <View style={styles.optionsContainer}>
+                                    <TouchableOpacity style={styles.optionButton} onPress={() => handleViewProfile(friend._id)}>
+                                        <FontAwesome name="user" size={16} color="blue" />
+                                        <Text style={styles.optionText}>View Profile</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.optionButton} onPress={() => handlePrivateMessage(friend)}>
+                                        <FontAwesome name="envelope" size={16} color="purple" />
+                                        <Text style={styles.optionText}>Private Message</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.optionButton} onPress={() => handleBlockUser(friend)}>
+                                        <FontAwesome name={isBlocked(friend._id) ? "unlock" : "ban"} size={16} color={isBlocked(friend._id) ? "green" : "red"} />
+                                        <Text style={styles.optionText}>{isBlocked(friend._id) ? "Unblock User" : "Block User"}</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
                         </View>
                     ))
                 ) : (
                     <Text style={styles.emptyListText}>No friends found.</Text>
                 )}
             </ScrollView>
+            {selectedUserId && (
+                <ProfileViewModal
+                    visible={profileModalVisible}
+                    onClose={() => setProfileModalVisible(false)}
+                    userId={selectedUserId}
+                    onSendMessage={(recipientId, recipientGender, recipientNickname) => {
+                        setProfileModalVisible(false);
+                        handlePrivateMessage({ _id: recipientId, nickname: recipientNickname, avatar: filteredFriends.find(friend => friend._id === recipientId).avatar });
+                    }}
+                />
+            )}
         </LinearGradient>
     );
 };
@@ -116,6 +171,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 10,
         elevation: 10,
+        position: 'relative', // Add position relative to position the remove button
     },
     avatarContainer: {
         flexDirection: 'row',
@@ -126,18 +182,41 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#fff',
     },
+    iconContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     removeButton: {
         backgroundColor: '#ff4d4d',
-        padding: 10,
+        padding: 5, // Reduce padding to make the button smaller
         borderRadius: 5,
         alignItems: 'center',
         justifyContent: 'center',
+        marginLeft: 10, // Add margin to the left of the remove button
     },
     emptyListText: {
         fontSize: 16,
         color: '#fff',
         textAlign: 'center',
         marginTop: 20,
+    },
+    optionsContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 10,
+        padding: 10,
+        marginTop: 10,
+        marginBottom: 10,
+    },
+    optionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        marginVertical: 5,
+    },
+    optionText: {
+        fontSize: 16,
+        marginLeft: 10,
+        color: '#fff',
     },
 });
 

@@ -14,7 +14,12 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        validate: {
+            validator: function(v) {
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+            },
+            message: props => `${props.value} is not a valid email!`
+        }
     },
     password: {
         type: String,
@@ -44,6 +49,7 @@ const UserSchema = new mongoose.Schema({
     isReadOnly: { type: Boolean, default: false },
     chatMessageCount: { type: Number, default: 0 },
     privateMessageCount: { type: Number, default: 0 },
+    isBanned: { type: Boolean, default: false },
 });
 
 UserSchema.pre('save', async function (next) {

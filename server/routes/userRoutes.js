@@ -1,5 +1,9 @@
+const overrideConsole = require('../utils/consoleOverride');
+overrideConsole();
+
+
 const express = require('express');
-const { updateProfile, uploadProfileAssets, incrementRating, addFriend, removeFriend, blockUser, unblockUser, updateProfilePicture, updateAvatar, getUserProfile, updateColors, updateEmail, changePassword, updatePrivacySetting } = require('../controllers/userController');
+const { updateProfile, uploadProfileAssets, incrementRating, addFriend, removeFriend, blockUser, unblockUser, updateProfilePicture, updateAvatar, getUserProfile, updateColors, updateEmail, changePassword, updatePrivacySetting, banUser, unbanUser } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware'); // Import the protect middleware
 const { isAdmin } = require('../middleware/adminMiddleware'); // Import the isAdmin middleware
 const User = require('../models/User'); // Import the User model
@@ -39,6 +43,10 @@ router.put('/changePassword', protect, changePassword);
 
 // Route to update privacy settings
 router.put('/updatePrivacySetting', protect, updatePrivacySetting);
+
+// Routes for banning/unbanning users
+router.put('/ban-user', protect, banUser); // Remove isAdmin middleware
+router.put('/unban-user', protect, unbanUser); // Remove isAdmin middleware
 
 // Route to get all users (Admin only)
 router.get('/', protect, isAdmin, async (req, res) => {

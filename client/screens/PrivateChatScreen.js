@@ -8,6 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Avatar from '../components/Avatar';
 import LottieView from 'lottie-react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import ProfileViewModal from '../components/ProfileViewModal';
+import PrivateMessageBox from '../components/PrivateMessageBox'; // Make sure to import PrivateMessageBox
 
 const MESSAGES_LIMIT = 70;
 const emojiMap = {
@@ -21,47 +23,6 @@ const emojiMap = {
     ':p8:': require('../assets/animations/emoji49.json'),
     ':p9:': require('../assets/animations/emoji50.json'),
     ':p10:': require('../assets/animations/emoji51.json'),
-    ':g:': require('../assets/animations/emoji1.json'),
-    ':m:': require('../assets/animations/emoji2.json'),
-    ':j:': require('../assets/animations/emoji3.json'),
-    ':b:': require('../assets/animations/emoji4.json'),
-    ':c:': require('../assets/animations/emoji5.json'),
-    ':d:': require('../assets/animations/emoji6.json'),
-    ':e:': require('../assets/animations/emoji7.json'),
-    ':f:': require('../assets/animations/emoji8.json'),
-    ':g1:': require('../assets/animations/emoji9.json'),
-    ':h:': require('../assets/animations/emoji10.json'),
-    ':i:': require('../assets/animations/emoji11.json'),
-    ':j1:': require('../assets/animations/emoji12.json'),
-    ':k:': require('../assets/animations/emoji13.json'),
-    ':l:': require('../assets/animations/emoji14.json'),
-    ':m1:': require('../assets/animations/emoji15.json'),
-    ':n:': require('../assets/animations/emoji16.json'),
-    ':o:': require('../assets/animations/emoji17.json'),
-    ':p:': require('../assets/animations/emoji18.json'),
-    ':q:': require('../assets/animations/emoji19.json'),
-    ':r:': require('../assets/animations/emoji20.json'),
-    ':s:': require('../assets/animations/emoji21.json'),
-    ':t:': require('../assets/animations/emoji22.json'),
-    ':u:': require('../assets/animations/emoji23.json'),
-    ':v:': require('../assets/animations/emoji24.json'),
-    ':w:': require('../assets/animations/emoji25.json'),
-    ':x:': require('../assets/animations/emoji26.json'),
-    ':y:': require('../assets/animations/emoji27.json'),
-    ':z:': require('../assets/animations/emoji28.json'),
-    ':am1:': require('../assets/animations/emoji29.json'),
-    ':am2:': require('../assets/animations/emoji30.json'),
-    ':am3:': require('../assets/animations/emoji31.json'),
-    ':am4:': require('../assets/animations/emoji32.json'),
-    ':am5:': require('../assets/animations/emoji33.json'),
-    ':am6:': require('../assets/animations/emoji34.json'),
-    ':am7:': require('../assets/animations/emoji35.json'),
-    ':am8:': require('../assets/animations/emoji36.json'),
-    ':am9:': require('../assets/animations/emoji37.json'),
-    ':am10:': require('../assets/animations/emoji38.json'),
-    ':am11:': require('../assets/animations/emoji39.json'),
-    ':am12:': require('../assets/animations/emoji40.json'),
-    ':am13:': require('../assets/animations/emoji41.json'),
 
     // Add more short codes and corresponding Lottie JSON files here
 };
@@ -71,11 +32,18 @@ const { width } = Dimensions.get('window');
 
 const PrivateChatScreen = ({ route, navigation }) => {
     const { userId, nickname, avatar } = route.params;
-    const { user, sendPrivateMessage, getPrivateMessages, markAsRead, setUnreadMessages, setCurrentPrivateChatUser, currentPrivateChatUser } = useContext(AuthContext);
+    const { user, sendPrivateMessage, getPrivateMessages, markAsRead, setUnreadMessages, setCurrentPrivateChatUser, currentPrivateChatUser, addFriend, removeFriend, blockUser, unblockUser, isFriend, isBlocked } = useContext(AuthContext);
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
+    const [userOptionsVisible, setUserOptionsVisible] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [profileViewVisible, setProfileViewVisible] = useState(false);
+    const [privateMessageBoxVisible, setPrivateMessageBoxVisible] = useState(false);
+    const [privateMessageRecipient, setPrivateMessageRecipient] = useState(null);
+    const [privateMessageRecipientGender, setPrivateMessageRecipientGender] = useState(null);
+    const [privateMessageRecipientNickname, setPrivateMessageRecipientNickname] = useState(null);
     const socket = useRef(null);
     const scrollViewRef = useRef();
 
@@ -87,14 +55,14 @@ const PrivateChatScreen = ({ route, navigation }) => {
     );
 
     useEffect(() => {
-        socket.current = io('http://192.168.172.192:5000');
+        socket.current = io('http://192.168.202.192:5000');
 
         const fetchMessages = async () => {
             setLoading(true);
             try {
                 const token = await AsyncStorage.getItem('token');
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                const res = await axios.get('http://192.168.172.192:5000/api/private-messages');
+                const res = await axios.get('http://192.168.202.192:5000/api/private-messages');
                 const privateMessages = res.data.filter(
                     msg => (msg.senderId._id === user._id && msg.recipientId._id === userId) ||
                            (msg.senderId._id === userId && msg.recipientId._id === user._id)
@@ -122,10 +90,10 @@ const PrivateChatScreen = ({ route, navigation }) => {
         socket.current.on('privateMessage', (newMessage) => {
             if ((newMessage.senderId === userId && newMessage.recipientId === user._id) ||
                 (newMessage.senderId === user._id && newMessage.recipientId === userId)) {
-                axios.get(`http://192.168.172.192:5000/api/user/${newMessage.senderId}`)
+                axios.get(`http://192.168.202.192:5000/api/user/${newMessage.senderId}`)
                     .then(senderRes => {
                         newMessage.senderId = senderRes.data;
-                        axios.get(`http://192.168.172.192:5000/api/user/${newMessage.recipientId}`)
+                        axios.get(`http://192.168.202.192:5000/api/user/${newMessage.recipientId}`)
                             .then(recipientRes => {
                                 newMessage.recipientId = recipientRes.data;
                                 setMessages((prevMessages) => {
@@ -207,7 +175,9 @@ const PrivateChatScreen = ({ route, navigation }) => {
             <View key={item._id} style={isSender ? styles.myMessageContainer : styles.theirMessageContainer}>
                 <Avatar avatarPath={displayAvatar} />
                 <View style={styles.messageContent}>
-                    <Text style={styles.nickname}>{displayNickname}</Text>
+                    <TouchableOpacity onPress={() => handleUserOptions(item.senderId)}>
+                        <Text style={styles.nickname}>{displayNickname}</Text>
+                    </TouchableOpacity>
                     <View style={styles.messageTextContainer}>
                         {item.message?.endsWith('.jpg') || item.message?.endsWith('.jpeg') || item.message?.endsWith('.png') ? (
                             <TouchableOpacity onPress={() => navigation.navigate('ImageView', { fileName: item.message })}>
@@ -221,6 +191,60 @@ const PrivateChatScreen = ({ route, navigation }) => {
                 </View>
             </View>
         );
+    };
+
+    const handleUserOptions = (user) => {
+        setSelectedUser(user);
+        setUserOptionsVisible(true);
+    };
+
+    const handleAddFriend = async () => {
+        try {
+            await addFriend(selectedUser._id);
+            setUserOptionsVisible(false);
+        } catch (err) {
+            console.error('Error adding friend:', err);
+        }
+    };
+
+    const handleRemoveFriend = async () => {
+        try {
+            await removeFriend(selectedUser._id);
+            setUserOptionsVisible(false);
+        } catch (err) {
+            console.error('Error removing friend:', err);
+        }
+    };
+
+    const handleBlockUser = async () => {
+        try {
+            await blockUser(selectedUser._id);
+            setUserOptionsVisible(false);
+        } catch (err) {
+            console.error('Error blocking user:', err);
+        }
+    };
+
+    const handleUnblockUser = async () => {
+        try {
+            await unblockUser(selectedUser._id);
+            setUserOptionsVisible(false);
+        } catch (err) {
+            console.error('Error unblocking user:', err);
+        }
+    };
+
+    const handleViewProfile = () => {
+        setUserOptionsVisible(false);
+        setProfileViewVisible(true);
+    };
+
+    const handleSendMessageFromProfile = (recipientId, recipientGender, recipientNickname) => {
+        setPrivateMessageRecipient(recipientId);
+        setPrivateMessageRecipientGender(recipientGender);
+        setPrivateMessageRecipientNickname(recipientNickname);
+        setPrivateMessageBoxVisible(true);
+        setProfileViewVisible(false);
     };
 
     return (
@@ -247,7 +271,7 @@ const PrivateChatScreen = ({ route, navigation }) => {
                                         source={emojiMap[emoji]}
                                         autoPlay
                                         loop
-                                        style={styles.emoji}
+                                        style={styles.emojiLarge}
                                     />
                                 </TouchableOpacity>
                             ))}
@@ -258,6 +282,7 @@ const PrivateChatScreen = ({ route, navigation }) => {
                     <TextInput
                         style={styles.input}
                         placeholder="Type a message"
+                        placeholderTextColor="#888"
                         value={message}
                         onChangeText={setMessage}
                     />
@@ -268,6 +293,61 @@ const PrivateChatScreen = ({ route, navigation }) => {
                         <FontAwesome name="smile-o" size={24} color="white" />
                     </TouchableOpacity>
                 </View>
+                <Modal
+                    visible={userOptionsVisible}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={() => setUserOptionsVisible(false)}
+                >
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>{selectedUser?.nickname}</Text>
+                            <TouchableOpacity style={styles.optionButton} onPress={handleViewProfile}>
+                                <FontAwesome name="user" size={16} color="blue" />
+                                <Text style={styles.optionText}>View Profile</Text>
+                            </TouchableOpacity>
+                            {isFriend(selectedUser?._id) ? (
+                                <TouchableOpacity style={styles.optionButton} onPress={handleRemoveFriend}>
+                                    <FontAwesome name="user-times" size={16} color="red" />
+                                    <Text style={styles.optionText}>Remove Friend</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity style={styles.optionButton} onPress={handleAddFriend}>
+                                    <FontAwesome name="user-plus" size={16} color="green" />
+                                    <Text style={styles.optionText}>Add Friend</Text>
+                                </TouchableOpacity>
+                            )}
+                            {isBlocked(selectedUser?._id) ? (
+                                <TouchableOpacity style={styles.optionButton} onPress={handleUnblockUser}>
+                                    <FontAwesome name="unlock" size={16} color="green" />
+                                    <Text style={styles.optionText}>Unblock User</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity style={styles.optionButton} onPress={handleBlockUser}>
+                                    <FontAwesome name="ban" size={16} color="red" />
+                                    <Text style={styles.optionText}>Block User</Text>
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity style={styles.closeButton} onPress={() => setUserOptionsVisible(false)}>
+                                <Text style={styles.buttonText}>Close</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+                <ProfileViewModal
+                    visible={profileViewVisible}
+                    onClose={() => setProfileViewVisible(false)}
+                    userId={selectedUser?._id}
+                    onSendMessage={handleSendMessageFromProfile}
+                />
+                <PrivateMessageBox
+                    visible={privateMessageBoxVisible}
+                    onClose={() => setPrivateMessageBoxVisible(false)}
+                    onSend={handleSendMessage}
+                    recipientId={privateMessageRecipient}
+                    recipientGender={privateMessageRecipientGender}
+                    recipientNickname={privateMessageRecipientNickname}
+                />
             </View>
         </KeyboardAvoidingView>
     );
@@ -276,7 +356,7 @@ const PrivateChatScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#8c6eb8',
     },
     messageList: {
         flexGrow: 1,
@@ -291,6 +371,11 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         margin: 5,
         maxWidth: '80%', // Ensure the message does not exceed 80% of the screen width
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 5,
     },
     theirMessageContainer: {
         flexDirection: 'row',
@@ -301,6 +386,11 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         margin: 5,
         maxWidth: '80%', // Ensure the message does not exceed 80% of the screen width
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 5,
     },
     messageContent: {
         marginLeft: 10,
@@ -308,6 +398,7 @@ const styles = StyleSheet.create({
     },
     nickname: {
         fontWeight: 'bold',
+        color: '#007bff', // Set nickname color to blue
     },
     messageTextContainer: {
         flexDirection: 'row',
@@ -316,13 +407,19 @@ const styles = StyleSheet.create({
     messageText: {
         fontSize: 16,
         flexWrap: 'wrap', // Ensure the text wraps to the next line if it's too long
+        color: '#333', // Set message text color to dark gray
     },
     textPart: {
         fontSize: 16,
     },
     emoji: {
-        width: 24, // Adjust size as needed
-        height: 24, // Adjust size as needed
+        width: 30, // Adjust size as needed
+        height: 30, // Adjust size as needed
+        marginBottom: -5, // Adjust to align with text
+    },
+    emojiLarge: {
+        width: 40, // Increase size for larger emojis
+        height: 40, // Increase size for larger emojis
         marginBottom: -5, // Adjust to align with text
     },
     messageTime: {
@@ -341,19 +438,21 @@ const styles = StyleSheet.create({
         padding: 10,
         borderWidth: 1,
         borderColor: '#ccc',
-        borderRadius: 5,
+        borderRadius: 25,
+        backgroundColor: '#f0f0f0',
+        color: '#333',
     },
     iconButton: {
         padding: 10,
         backgroundColor: '#007bff',
-        borderRadius: 5,
+        borderRadius: 25,
         alignItems: 'center',
         justifyContent: 'center',
         marginLeft: 10,
     },
     emojiPickerContainer: {
         width: width, // Full width
-        height: 100, // Adjust height as needed
+        height: 120, // Adjust height as needed
         backgroundColor: 'rgba(0, 0, 0, 0.8)', // Dark black transparent background
         padding: 10,
         position: 'absolute',
@@ -369,6 +468,48 @@ const styles = StyleSheet.create({
     imageLink: {
         color: 'blue',
         textDecorationLine: 'underline',
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        width: '80%',
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        padding: 20,
+        alignItems: 'center',
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 20,
+    },
+    optionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        marginVertical: 5,
+        width: '100%',
+        justifyContent: 'center',
+    },
+    optionText: {
+        fontSize: 18,
+        marginLeft: 10,
+        color: '#333',
+    },
+    closeButton: {
+        backgroundColor: '#007bff',
+        padding: 10,
+        borderRadius: 5,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    buttonText: {
+        color: 'white',
+        fontWeight: 'bold',
     },
 });
 

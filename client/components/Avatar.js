@@ -6,7 +6,7 @@ const Avatar = ({ avatarPath, isOnline }) => {
         if (!avatarPath) {
             return 'https://placehold.co/40x40'; // Fallback URL if avatar is not defined
         }
-        return `http://192.168.172.192:5000/${avatarPath.replace(/\\/g, '/')}`;
+        return `http://192.168.202.192:5000/${avatarPath.replace(/\\/g, '/')}`;
     };
 
     const avatarUrl = getAvatarUrl(avatarPath);

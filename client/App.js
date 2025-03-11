@@ -27,6 +27,11 @@ import MenuScreen from './screens/MenuScreen';
 import ImageViewScreen from './screens/ImageViewScreen'; // Import the ImageViewScreen
 import { AuthProvider } from './context/AuthContext';
 import { RoomProvider } from './context/RoomContext';
+import overrideConsole from './utils/consoleOverride'; // Import the console override utility
+
+ // Call the overrideConsole function
+ overrideConsole();
+
 
 const Stack = createStackNavigator();
 

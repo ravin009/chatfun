@@ -27,11 +27,11 @@ const ChatScreen = ({ navigation, route }) => {
     const [messages, setMessages] = useState([]);
     const { user, setUser, logout, addFriend, removeFriend, blockUser, unblockUser, isFriend, isBlocked, sendPrivateMessage, getPrivateMessages, markAsRead, unreadMessages, setUnreadMessages, isAdmin, setAlertTitle, setAlertMessage, setAlertType, setAlertVisible, setAlertOnConfirm, setAlertOnCancel } = useContext(AuthContext);
     const { rooms, setReadOnly, removeReadOnly } = useContext(RoomContext);
-    const socket = useRef(io('http://192.168.172.192:5000')).current;
+    const socket = useRef(io('http://192.168.202.192:5000')).current;
     const [userOptionsVisible, setUserOptionsVisible] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
+    const [selectedUserProfile, setSelectedUserProfile] = useState(null); // Add this line
     const [profileViewVisible, setProfileViewVisible] = useState(false);
-    const [selectedUserProfile, setSelectedUserProfile] = useState(null);
     const [privateMessageBoxVisible, setPrivateMessageBoxVisible] = useState(false);
     const [privateMessageRecipient, setPrivateMessageRecipient] = useState(null);
     const [privateMessageRecipientGender, setPrivateMessageRecipientGender] = useState(null);
@@ -74,7 +74,7 @@ const ChatScreen = ({ navigation, route }) => {
     useEffect(() => {
         const fetchDefaultRoomId = async () => {
             try {
-                const res = await axios.get('http://192.168.172.192:5000/api/default-room');
+                const res = await axios.get('http://192.168.202.192:5000/api/default-room');
                 setDefaultRoomId(res.data.roomId);
             } catch (err) {
                 console.error('Error fetching default room ID:', err.response ? err.response.data : err.message);
@@ -103,7 +103,7 @@ const ChatScreen = ({ navigation, route }) => {
         socket.on('privateMessage', async (message) => {
             console.log('Received private message:', message);
             if (!message.senderId || typeof message.senderId === 'string') {
-                const senderRes = await axios.get(`http://192.168.172.192:5000/api/user/${message.senderId}`);
+                const senderRes = await axios.get(`http://192.168.202.192:5000/api/user/${message.senderId}`);
                 message.senderId = senderRes.data;
             }
             setPrivateMessages((prevMessages) => [...prevMessages, message]);
@@ -116,7 +116,7 @@ const ChatScreen = ({ navigation, route }) => {
         socket.on('privateMessageNotification', async (message) => {
             console.log('Received private message notification:', message);
             if (!message.senderId || typeof message.senderId === 'string') {
-                const senderRes = await axios.get(`http://192.168.172.192:5000/api/user/${message.senderId}`);
+                const senderRes = await axios.get(`http://192.168.202.192:5000/api/user/${message.senderId}`);
                 message.senderId = senderRes.data;
             }
             if (message.recipientId === user._id && !message.isRead) {
@@ -153,14 +153,14 @@ const ChatScreen = ({ navigation, route }) => {
                 const token = await AsyncStorage.getItem('token');
                 if (token) {
                     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                    const res = await axios.get(`http://192.168.172.192:5000/api/chat/${roomId || defaultRoomId}`);
+                    const res = await axios.get(`http://192.168.202.192:5000/api/chat/${roomId || defaultRoomId}`);
                     const fetchedMessages = res.data;
 
                     const filteredMessages = user ? fetchedMessages.filter(chat => chat.userId && !user.blockedUsers.includes(chat.userId._id)) : fetchedMessages;
 
                     console.log('Fetched messages:', filteredMessages);
                     setMessages(filteredMessages.length > 70 ? filteredMessages.slice(filteredMessages.length - 70) : filteredMessages);
-                    flatListRef.current.scrollToEnd({ animated: true });
+                    flatListRef.current.scrollToEnd({ animated: false }); // Scroll to the bottom without animation
                 } else {
                     console.error('No token found');
                 }
@@ -190,7 +190,7 @@ const ChatScreen = ({ navigation, route }) => {
             if (message.trim()) {
                 const newMessage = { roomId: roomId || defaultRoomId, message, userId: user._id, nickname: user.nickname, avatar: user.avatar, nicknameColor: user.nicknameColor, chatTextColor: user.chatTextColor };
                 try {
-                    const roomRes = await axios.get(`http://192.168.172.192:5000/api/rooms/${newMessage.roomId}`);
+                    const roomRes = await axios.get(`http://192.168.202.192:5000/api/rooms/${newMessage.roomId}`);
                     if (!roomRes.data) {
                         throw new Error('Room not found');
                     }
@@ -203,17 +203,14 @@ const ChatScreen = ({ navigation, route }) => {
                         return;
                     }
 
-                    const res = await axios.post('http://192.168.172.192:5000/api/chat/send', newMessage);
+                    const res = await axios.post('http://192.168.202.192:5000/api/chat/send', newMessage);
                     console.log('Message sent:', res.data);
                     socket.emit('message', res.data);
                     flatListRef.current.scrollToEnd({ animated: true });
 
-                    try {
-                        const ratingRes = await axios.put('http://192.168.172.192:5000/api/user/increment-rating');
-                        setUser((prevUser) => ({ ...prevUser, rating: ratingRes.data.rating }));
-                    } catch (err) {
-                        console.error('Error incrementing rating:', err.response ? err.response.data : err.message);
-                    }
+                    // Increment the rating only once
+                    const ratingRes = await axios.put('http://192.168.202.192:5000/api/user/increment-rating');
+                    setUser((prevUser) => ({ ...prevUser, rating: ratingRes.data.rating }));
                 } catch (err) {
                     console.error('Error sending message:', err.response ? err.response.data : err.message);
                     if (err.message === 'Room not found' || (err.response && err.response.data && err.response.data.error === 'Room not found')) {
@@ -222,6 +219,11 @@ const ChatScreen = ({ navigation, route }) => {
                         setAlertType('error');
                         setAlertVisible(true);
                         navigation.navigate('Chat', { roomId: defaultRoomId });
+                    } else if (err.response && err.response.data && err.response.data.error === 'You are banned from sending messages.') {
+                        setAlertTitle('Banned');
+                        setAlertMessage('You are banned from sending messages.');
+                        setAlertType('error');
+                        setAlertVisible(true);
                     }
                 }
             }
@@ -248,7 +250,17 @@ const ChatScreen = ({ navigation, route }) => {
                 formData.append('chatTextColor', user.chatTextColor);
 
                 try {
-                    const roomRes = await axios.get(`http://192.168.172.192:5000/api/rooms/${roomId || defaultRoomId}`);
+                    // Check if the user is banned
+                    const userRes = await axios.get(`http://192.168.202.192:5000/api/user/${user._id}`);
+                    if (userRes.data.isBanned) {
+                        setAlertTitle('Banned');
+                        setAlertMessage('You are banned from sending messages.');
+                        setAlertType('error');
+                        setAlertVisible(true);
+                        return;
+                    }
+
+                    const roomRes = await axios.get(`http://192.168.202.192:5000/api/rooms/${roomId || defaultRoomId}`);
                     if (!roomRes.data) {
                         throw new Error('Room not found');
                     }
@@ -261,7 +273,7 @@ const ChatScreen = ({ navigation, route }) => {
                         return;
                     }
 
-                    const res = await axios.post('http://192.168.172.192:5000/api/chat/send-image', formData, {
+                    const res = await axios.post('http://192.168.202.192:5000/api/chat/send-image', formData, {
                         headers: {
                             'Content-Type': 'multipart/form-data',
                         },
@@ -273,7 +285,7 @@ const ChatScreen = ({ navigation, route }) => {
                     flatListRef.current.scrollToEnd({ animated: true });
 
                     try {
-                        const ratingRes = await axios.put('http://192.168.172.192:5000/api/user/increment-rating');
+                        const ratingRes = await axios.put('http://192.168.202.192:5000/api/user/increment-rating');
                         setUser((prevUser) => ({ ...prevUser, rating: ratingRes.data.rating }));
                     } catch (err) {
                         console.error('Error incrementing rating:', err.response ? err.response.data : err.message);
@@ -286,12 +298,23 @@ const ChatScreen = ({ navigation, route }) => {
                         setAlertType('error');
                         setAlertVisible(true);
                         navigation.navigate('Chat', { roomId: defaultRoomId });
+                    } else if (err.response && err.response.data && err.response.data.error === 'You are banned from sending messages.') {
+                        setAlertTitle('Banned');
+                        setAlertMessage('You are banned from sending messages.');
+                        setAlertType('error');
+                        setAlertVisible(true);
+                    } else if (err.response && err.response.data && err.response.data.error === 'You are in read-only mode and cannot send messages in this room.') {
+                        setAlertTitle('Read-Only Mode');
+                        setAlertMessage('You are in read-only mode and cannot send messages in this room.');
+                        setAlertType('error');
+                        setAlertVisible(true);
                     }
                 }
             }
         }, 300),
         [user, socket, setUser, roomId, defaultRoomId]
     );
+
 
     useEffect(() => {
         console.log('Current user in ChatScreen:', user);
@@ -333,7 +356,7 @@ const ChatScreen = ({ navigation, route }) => {
         }
         try {
             console.log('User before adding friend:', user);
-            const res = await axios.put(`http://192.168.172.192:5000/api/user/add-friend/${friendId}`);
+            const res = await axios.put(`http://192.168.202.192:5000/api/user/add-friend/${friendId}`);
             setUser((prevUser) => ({
                 ...prevUser,
                 friends: [...prevUser.friends, res.data.friends.find(friend => friend._id === friendId)]
@@ -360,7 +383,7 @@ const ChatScreen = ({ navigation, route }) => {
         }
         try {
             console.log('User before removing friend:', user);
-            const res = await axios.put(`http://192.168.172.192:5000/api/user/remove-friend/${friendId}`);
+            const res = await axios.put(`http://192.168.202.192:5000/api/user/remove-friend/${friendId}`);
             setUser((prevUser) => ({
                 ...prevUser,
                 friends: prevUser.friends.filter(friend => friend._id !== friendId)
@@ -379,7 +402,7 @@ const ChatScreen = ({ navigation, route }) => {
             setAlertVisible(true);
         }
     }, [user]);
-    
+
     const handleBlockUser = useCallback(async (blockedUserId) => {
         if (typeof blockedUserId !== 'string') {
             console.error('Invalid blockedUserId:', blockedUserId);
@@ -387,7 +410,7 @@ const ChatScreen = ({ navigation, route }) => {
         }
         try {
             console.log('User before blocking user:', user);
-            const res = await axios.put(`http://192.168.172.192:5000/api/user/block-user/${blockedUserId}`);
+            const res = await axios.put(`http://192.168.202.192:5000/api/user/block-user/${blockedUserId}`);
             setUser((prevUser) => ({
                 ...prevUser,
                 blockedUsers: [...prevUser.blockedUsers, res.data.blockedUsers.find(blockedUser => blockedUser._id === blockedUserId)]
@@ -406,7 +429,7 @@ const ChatScreen = ({ navigation, route }) => {
             setAlertVisible(true);
         }
     }, [user]);
-    
+
     const handleUnblockUser = useCallback(async (blockedUserId) => {
         if (typeof blockedUserId !== 'string') {
             console.error('Invalid blockedUserId:', blockedUserId);
@@ -414,7 +437,7 @@ const ChatScreen = ({ navigation, route }) => {
         }
         try {
             console.log('User before unblocking user:', user);
-            const res = await axios.put(`http://192.168.172.192:5000/api/user/unblock-user/${blockedUserId}`);
+            const res = await axios.put(`http://192.168.202.192:5000/api/user/unblock-user/${blockedUserId}`);
             setUser((prevUser) => ({
                 ...prevUser,
                 blockedUsers: prevUser.blockedUsers.filter(blockedUser => blockedUser._id !== blockedUserId)
@@ -433,7 +456,7 @@ const ChatScreen = ({ navigation, route }) => {
             setAlertVisible(true);
         }
     }, [user]);
-    
+
     const handleSetReadOnly = useCallback(async (userId) => {
         try {
             await setReadOnly(roomId, userId);
@@ -449,7 +472,7 @@ const ChatScreen = ({ navigation, route }) => {
             setAlertVisible(true);
         }
     }, [roomId, setReadOnly]);
-    
+
     const handleRemoveReadOnly = useCallback(async (userId) => {
         try {
             await removeReadOnly(roomId, userId);
@@ -465,12 +488,54 @@ const ChatScreen = ({ navigation, route }) => {
             setAlertVisible(true);
         }
     }, [roomId, removeReadOnly]);
-    
+
+    const handleBanUser = useCallback(async (userId) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            const res = await axios.put('http://192.168.202.192:5000/api/user/ban-user', { userId });
+            setAlertTitle('Success');
+            setAlertMessage('User banned successfully.');
+            setAlertType('success');
+            setAlertVisible(true);
+            setSelectedUserProfile((prevProfile) => ({ ...prevProfile, isBanned: true })); // Update the state
+            return res.data;
+        } catch (err) {
+            console.error('Error in handleBanUser:', err.response ? err.response.data : err.message);
+            setAlertTitle('Error');
+            setAlertMessage(err.response && err.response.data && err.response.data.error ? err.response.data.error : 'An error occurred while banning the user.');
+            setAlertType('error');
+            setAlertVisible(true);
+            throw err;
+        }
+    }, []);
+
+    const handleUnbanUser = useCallback(async (userId) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            const res = await axios.put('http://192.168.202.192:5000/api/user/unban-user', { userId });
+            setAlertTitle('Success');
+            setAlertMessage('User unbanned successfully.');
+            setAlertType('success');
+            setAlertVisible(true);
+            setSelectedUserProfile((prevProfile) => ({ ...prevProfile, isBanned: false })); // Update the state
+            return res.data;
+        } catch (err) {
+            console.error('Error in handleUnbanUser:', err.response ? err.response.data : err.message);
+            setAlertTitle('Error');
+            setAlertMessage(err.response && err.response.data && err.response.data.error ? err.response.data.error : 'An error occurred while unbanning the user.');
+            setAlertType('error');
+            setAlertVisible(true);
+            throw err;
+        }
+    }, []);
+
     const handleSetRole = async (userId, role, action) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.put('http://192.168.172.192:5000/api/admin/set-role', { userId, role, action });
+            const res = await axios.put('http://192.168.202.192:5000/api/admin/set-role', { userId, role, action });
             setAlertTitle('Success');
             setAlertMessage(`Role ${action === 'add' ? 'added to' : 'removed from'} user.`);
             setAlertType('success');
@@ -487,12 +552,12 @@ const ChatScreen = ({ navigation, route }) => {
             setAlertVisible(true);
         }
     };
-    
+
     const renderUserOptions = useCallback(async (userId) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.get(`http://192.168.172.192:5000/api/user/${userId}`);
+            const res = await axios.get(`http://192.168.202.192:5000/api/user/${userId}`);
             setSelectedUserProfile(res.data);
             setSelectedUserId(userId);
             setUserOptionsVisible(true);
@@ -504,7 +569,7 @@ const ChatScreen = ({ navigation, route }) => {
             setAlertVisible(true);
         }
     }, []);
-    
+
     const handleViewProfile = useCallback(async (userId) => {
         if (typeof userId !== 'string') {
             console.error('Invalid userId:', userId);
@@ -514,7 +579,7 @@ const ChatScreen = ({ navigation, route }) => {
             console.log('Fetching user profile for userId:', userId);
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.get(`http://192.168.172.192:5000/api/user/${userId}`);
+            const res = await axios.get(`http://192.168.202.192:5000/api/user/${userId}`);
             setSelectedUserProfile(res.data);
             setProfileViewVisible(true);
             setUserOptionsVisible(false);
@@ -526,7 +591,7 @@ const ChatScreen = ({ navigation, route }) => {
             setAlertVisible(true);
         }
     }, [user]);
-    
+
     const handlePrivateMessage = useCallback(async (userId) => {
         if (typeof userId !== 'string') {
             console.error('Invalid userId:', userId);
@@ -535,7 +600,7 @@ const ChatScreen = ({ navigation, route }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            const res = await axios.get(`http://192.168.172.192:5000/api/user/${userId}`);
+            const res = await axios.get(`http://192.168.202.192:5000/api/user/${userId}`);
             setPrivateMessageRecipient(userId);
             setPrivateMessageRecipientGender(res.data.gender);
             setPrivateMessageRecipientNickname(res.data.nickname);
@@ -549,7 +614,7 @@ const ChatScreen = ({ navigation, route }) => {
             setAlertVisible(true);
         }
     }, [user]);
-    
+
     const handleSendPrivateMessage = useCallback(async (message) => {
         if (message.trim() && privateMessageRecipient) {
             try {
@@ -575,7 +640,7 @@ const ChatScreen = ({ navigation, route }) => {
             }
         }
     }, [privateMessageRecipient, sendPrivateMessage, socket]);
-    
+
     const handleMarkAsRead = useCallback(async (messageId) => {
         try {
             await markAsRead(messageId);
@@ -589,7 +654,7 @@ const ChatScreen = ({ navigation, route }) => {
             setAlertVisible(true);
         }
     }, [markAsRead]);
-    
+
     const handleRoomInfo = () => {
         if (room && (room.owner._id === user._id || room.creator._id === user._id || isAdmin)) {
             setSettingsVisible(true);
@@ -597,7 +662,7 @@ const ChatScreen = ({ navigation, route }) => {
             setInfoVisible(true);
         }
     };
-    
+
     const handleSwipeDown = useMemo(() => PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onPanResponderMove: Animated.event([null, { dy: pan.y }], { useNativeDriver: false }),
@@ -628,14 +693,19 @@ const ChatScreen = ({ navigation, route }) => {
             }
         },
     }), [pan, showNavBar, setShowNavBar]);
-    
+
     const handleImageClick = (fileName) => {
-        setAlertTitle('Image Options');
-        setAlertMessage(`What would you like to do with ${fileName}?`);
-        setAlertType('info');
-        setAlertVisible(true);
+        navigation.navigate('ImageView', { fileName });
     };
-    
+
+    const handleSendMessageFromProfile = (recipientId, recipientGender, recipientNickname) => {
+        setPrivateMessageRecipient(recipientId);
+        setPrivateMessageRecipientGender(recipientGender);
+        setPrivateMessageRecipientNickname(recipientNickname);
+        setPrivateMessageBoxVisible(true);
+        setProfileViewVisible(false);
+    };
+
     return (
         <View style={[styles.container, { backgroundColor: room?.backgroundColor || '#17202a' }]} {...handleSwipeDown.panHandlers}>
             {user && (
@@ -654,10 +724,14 @@ const ChatScreen = ({ navigation, route }) => {
                             console.log('Rendering message item:', item);
                             return <MessageItem item={item} renderUserOptions={renderUserOptions} handleImageClick={handleImageClick} />;
                         }}
-                        keyExtractor={(item) => item._id}
+                        keyExtractor={(item) => item._id ? item._id.toString() : Math.random().toString()} // Ensure each item has a unique key
                         onContentSizeChange={() => {
                             console.log('Content size changed, scrolling to end');
-                            flatListRef.current.scrollToEnd({ animated: true });
+                            flatListRef.current.scrollToEnd({ animated: false }); // Scroll to the bottom without animation
+                        }}
+                        onLayout={() => {
+                            console.log('Layout changed, scrolling to end');
+                            flatListRef.current.scrollToEnd({ animated: false }); // Scroll to the bottom without animation
                         }}
                         initialNumToRender={10}
                         maxToRenderPerBatch={10}
@@ -690,6 +764,7 @@ const ChatScreen = ({ navigation, route }) => {
                         isFriend={isFriend(selectedUserId)}
                         isBlocked={isBlocked(selectedUserId)}
                         isReadOnly={room?.readOnlyUsers.includes(selectedUserId)}
+                        isBanned={selectedUserProfile?.isBanned} // Add this line
                         handleAddFriend={handleAddFriend}
                         handleRemoveFriend={handleRemoveFriend}
                         handleBlockUser={handleBlockUser}
@@ -698,6 +773,8 @@ const ChatScreen = ({ navigation, route }) => {
                         handlePrivateMessage={handlePrivateMessage}
                         handleSetReadOnly={handleSetReadOnly}
                         handleRemoveReadOnly={handleRemoveReadOnly}
+                        handleBanUser={handleBanUser} // Add this line
+                        handleUnbanUser={handleUnbanUser} // Add this line
                         isAdmin={isAdmin}
                         handleSetRole={handleSetRole}
                         userRoles={selectedUserProfile?.roles || []}
@@ -707,10 +784,12 @@ const ChatScreen = ({ navigation, route }) => {
                         currentRoomId={roomId || defaultRoomId}
                         targetUserRoomId={selectedUserProfile?.roomId}
                     />
+
                     <ProfileViewModal
                         visible={profileViewVisible}
                         onClose={() => setProfileViewVisible(false)}
-                        userProfile={selectedUserProfile}
+                        userId={selectedUserId}
+                        onSendMessage={handleSendMessageFromProfile}
                     />
                     <PrivateMessageBox
                         visible={privateMessageBoxVisible}
@@ -765,6 +844,6 @@ const ChatScreen = ({ navigation, route }) => {
             )}
         </View>
     );
-    };
-    
-    export default ChatScreen;
+};
+
+export default ChatScreen;

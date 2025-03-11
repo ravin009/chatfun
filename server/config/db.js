@@ -1,3 +1,8 @@
+const overrideConsole = require('../utils/overrideConsole');
+overrideConsole();
+
+
+
 const mongoose = require('mongoose');
 
 const connectDB = async () => {

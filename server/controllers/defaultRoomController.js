@@ -1,3 +1,6 @@
+const overrideConsole = require('../utils/consoleOverride');
+overrideConsole();
+
 const DefaultRoom = require('../models/DefaultRoom');
 
 exports.getDefaultRoom = async (req, res) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert, Modal, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert, Modal, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome } from '@expo/vector-icons';
 import AuthContext from '../context/AuthContext';
@@ -19,7 +19,7 @@ const AdminPanelScreen = ({ navigation }) => {
             try {
                 const token = await AsyncStorage.getItem('token');
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                const res = await axios.get('http://192.168.172.192:5000/api/user');
+                const res = await axios.get('http://192.168.202.192:5000/api/user');
                 setUsers(res.data);
             } catch (err) {
                 console.error('Error fetching users:', err.response ? err.response.data : err.message);
@@ -37,7 +37,7 @@ const AdminPanelScreen = ({ navigation }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            await axios.put('http://192.168.172.192:5000/api/admin/set-role', { userId, role, action });
+            await axios.put('http://192.168.202.192:5000/api/admin/set-role', { userId, role, action });
             Alert.alert('Success', `Role ${action === 'add' ? 'added to' : 'removed from'} user.`);
             setModalVisible(false);
         } catch (err) {
@@ -66,11 +66,6 @@ const AdminPanelScreen = ({ navigation }) => {
             colors={['#4c669f', '#3b5998', '#192f6a']}
             style={styles.container}
         >
-            <Image
-                source={require('../assets/ChatFun_Logo.png')}
-                style={styles.logo}
-                alt="Chatify logo with a 1:1 ratio"
-            />
             <Text style={styles.title}>Admin Panel</Text>
             {loading ? (
                 <Text style={styles.loadingText}>Loading...</Text>
@@ -174,11 +169,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
     },
-    logo: {
-        width: 150, // Adjust the size as needed
-        height: 150, // Ensure the height matches the width for a 1:1 ratio
-        marginBottom: 20, // Add some space below the logo
-    },
     title: {
         fontSize: 24,
         marginBottom: 20,
@@ -213,6 +203,75 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         marginLeft: 10, // Add some space between the icon and the text
+    },
+    listContainer: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    listTitle: {
+        fontSize: 20,
+        marginBottom: 20,
+        color: '#fff', // Make the title text white for better contrast
+    },
+    list: {
+        width: '100%',
+        padding: 10,
+    },
+    userItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        marginVertical: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 10,
+    },
+    userNickname: {
+        fontSize: 16,
+        color: '#fff',
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        width: '80%',
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        padding: 20,
+        alignItems: 'center',
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 20,
+    },
+    optionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        marginVertical: 5,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 10,
+        width: '100%',
+        justifyContent: 'center',
+    },
+    optionText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    closeButton: {
+        backgroundColor: '#007bff',
+        padding: 10,
+        borderRadius: 5,
+        alignItems: 'center',
+        marginTop: 20,
     },
 });
 

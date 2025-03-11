@@ -1,3 +1,7 @@
+const overrideConsole = require('../utils/consoleOverride');
+overrideConsole();
+
+
 const Chat = require('../models/Chat');
 const User = require('../models/User');
 const Room = require('../models/Room');
@@ -22,6 +26,10 @@ exports.sendMessage = async (req, res) => {
 
     try {
         const sender = await User.findById(userId);
+        if (sender.isBanned) {
+            return res.status(403).json({ error: 'You are banned from sending messages.' });
+        }
+
         const recipient = await User.findById(req.body.recipientId);
         const room = await Room.findOne({ roomId });
 
@@ -53,9 +61,8 @@ exports.sendMessage = async (req, res) => {
         });
         await chat.save();
 
-        // Increment the chat message count and rating for the sender
+        // Increment the chat message count for the sender
         sender.chatMessageCount = (sender.chatMessageCount || 0) + 1;
-        sender.rating += 1;
         await sender.save();
 
         res.status(201).json(chat);

@@ -1,3 +1,6 @@
+const overrideConsole = require('../utils/consoleOverride');
+overrideConsole();
+
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 

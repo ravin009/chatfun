@@ -1,3 +1,6 @@
+const overrideConsole = require('../utils/consoleOverride');
+overrideConsole();
+
 const Room = require('../models/Room');
 const User = require('../models/User');
 

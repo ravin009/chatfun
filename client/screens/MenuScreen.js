@@ -12,7 +12,7 @@ const MenuScreen = ({ navigation }) => {
         <View style={styles.container}>
             {user && user.avatar ? (
                 <Image
-                    source={{ uri: `http://192.168.172.192:5000/${user.avatar}` }}
+                    source={{ uri: `http://192.168.202.192:5000/${user.avatar}` }}
                     style={styles.avatar}
                     alt="User's avatar in a large square shape"
                 />

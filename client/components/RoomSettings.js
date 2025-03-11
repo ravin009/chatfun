@@ -49,7 +49,7 @@ const RoomSettings = ({ room, visible, onClose }) => {
 
     const fetchUserDetails = async (userId) => {
         try {
-            const res = await axios.get(`http://192.168.172.192:5000/api/user/${userId}`);
+            const res = await axios.get(`http://192.168.202.192:5000/api/user/${userId}`);
             return res.data;
         } catch (err) {
             console.error('Error fetching user details:', err);

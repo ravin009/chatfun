@@ -4,7 +4,33 @@ import { FontAwesome } from '@expo/vector-icons';
 import styles from '../styles/ChatScreenStyles';
 import AuthContext from '../context/AuthContext';
 
-const UserOptionsModal = ({ visible, onClose, userId, isFriend, isBlocked, isReadOnly, handleAddFriend, handleRemoveFriend, handleBlockUser, handleUnblockUser, handleViewProfile, handlePrivateMessage, handleSetReadOnly, handleRemoveReadOnly, isAdmin, handleSetRole, userRoles, currentUserRoles, isRoomOwner, isRoomCreator, currentRoomId, targetUserRoomId }) => {
+const UserOptionsModal = ({
+    visible,
+    onClose,
+    userId,
+    isFriend,
+    isBlocked,
+    isReadOnly,
+    isBanned, // Add this line
+    handleAddFriend,
+    handleRemoveFriend,
+    handleBlockUser,
+    handleUnblockUser,
+    handleViewProfile,
+    handlePrivateMessage,
+    handleSetReadOnly,
+    handleRemoveReadOnly,
+    handleBanUser, // Add this line
+    handleUnbanUser, // Add this line
+    isAdmin,
+    handleSetRole,
+    userRoles,
+    currentUserRoles,
+    isRoomOwner,
+    isRoomCreator,
+    currentRoomId,
+    targetUserRoomId
+}) => {
     const { setAlertTitle, setAlertMessage, setAlertType, setAlertVisible } = useContext(AuthContext);
 
     const handleSetReadOnlyClick = async () => {
@@ -23,11 +49,9 @@ const UserOptionsModal = ({ visible, onClose, userId, isFriend, isBlocked, isRea
                 return;
             }
 
-            // Check if the target user is the owner or creator of the room and is in their own room
-            if ((userRoles.includes('Room Owner') || userRoles.includes('Room Creator')) && currentRoomId === targetUserRoomId) {
-                throw new Error('You cannot set the owner or creator to read-only mode in their own room');
-            } else if (isTargetUserRestricted || userRoles.includes('Room Owner') || userRoles.includes('Room Creator')) {
-                throw new Error('You cannot set a user with Admin, Moderator, Super Moderator, Co-Admin roles, or the room owner/creator to read-only mode');
+            // Check if the target user has restricted roles
+            if (isTargetUserRestricted) {
+                throw new Error('You cannot set a user with Admin, Moderator, Super Moderator, or Co-Admin roles to read-only mode');
             } else {
                 await handleSetReadOnly(userId);
                 setAlertTitle('Success');
@@ -59,11 +83,9 @@ const UserOptionsModal = ({ visible, onClose, userId, isFriend, isBlocked, isRea
                 return;
             }
 
-            // Check if the target user is the owner or creator of the room and is in their own room
-            if ((userRoles.includes('Room Owner') || userRoles.includes('Room Creator')) && currentRoomId === targetUserRoomId) {
-                throw new Error('You cannot remove read-only mode for the owner or creator in their own room');
-            } else if (isTargetUserRestricted || userRoles.includes('Room Owner') || userRoles.includes('Room Creator')) {
-                throw new Error('You cannot remove read-only mode for a user with Admin, Moderator, Super Moderator, Co-Admin roles, or the room owner/creator');
+            // Check if the target user has restricted roles
+            if (isTargetUserRestricted) {
+                throw new Error('You cannot remove read-only mode for a user with Admin, Moderator, Super Moderator, or Co-Admin roles');
             } else {
                 await handleRemoveReadOnly(userId);
                 setAlertTitle('Success');
@@ -131,6 +153,37 @@ const UserOptionsModal = ({ visible, onClose, userId, isFriend, isBlocked, isRea
                             <TouchableOpacity style={styles.optionButton} onPress={handleSetReadOnlyClick}>
                                 <FontAwesome name="lock" size={16} color="red" />
                                 <Text style={styles.optionText}>Set Read-Only</Text>
+                            </TouchableOpacity>
+                        )
+                    )}
+                    {isBanned ? (
+                        <TouchableOpacity style={styles.optionButton} onPress={async () => {
+                            try {
+                                await handleUnbanUser(userId?.toString());
+                            } catch (error) {
+                                setAlertTitle('Error');
+                                setAlertMessage(error.response && error.response.data && error.response.data.error ? error.response.data.error : 'An error occurred while unbanning the user.');
+                                setAlertType('error');
+                                setAlertVisible(true);
+                            }
+                        }}>
+                            <FontAwesome name="unlock" size={16} color="green" />
+                            <Text style={styles.optionText}>Unban User</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        (isAdmin || currentUserRoles.includes('Super Moderator') || currentUserRoles.includes('Co-Admin')) && (
+                            <TouchableOpacity style={styles.optionButton} onPress={async () => {
+                                try {
+                                    await handleBanUser(userId?.toString());
+                                } catch (error) {
+                                    setAlertTitle('Error');
+                                    setAlertMessage(error.response && error.response.data && error.response.data.error ? error.response.data.error : 'An error occurred while banning the user.');
+                                    setAlertType('error');
+                                    setAlertVisible(true);
+                                }
+                            }}>
+                                <FontAwesome name="ban" size={16} color="red" />
+                                <Text style={styles.optionText}>Ban User</Text>
                             </TouchableOpacity>
                         )
                     )}

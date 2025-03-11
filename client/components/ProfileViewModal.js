@@ -1,9 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, Image, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ScreenCapture from 'expo-screen-capture';
-import Avatar from './Avatar'; // Import the Avatar component
 import LottieView from 'lottie-react-native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Avatar from './Avatar';
 
 const emojiMap = {
     ':p1:': require('../assets/animations/emoji42.json'),
@@ -59,7 +61,9 @@ const emojiMap = {
     ':am13:': require('../assets/animations/emoji41.json'),
 };
 
-const ProfileViewModal = ({ visible, onClose, userProfile }) => {
+const ProfileViewModal = ({ visible, onClose, userId, onSendMessage }) => {
+    const [profile, setProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [viewingProfilePicture, setViewingProfilePicture] = useState(false);
     const [viewingAvatar, setViewingAvatar] = useState(false);
     const [viewingFullBio, setViewingFullBio] = useState(false);
@@ -116,131 +120,165 @@ const ProfileViewModal = ({ visible, onClose, userProfile }) => {
         );
     };
 
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const token = await AsyncStorage.getItem('token');
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                const res = await axios.get(`http://192.168.202.192:5000/api/user/${userId}`);
+                setProfile(res.data);
+            } catch (err) {
+                console.error('Error fetching profile:', err.response ? err.response.data : err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (visible) {
+            fetchProfile();
+        }
+    }, [userId, visible]);
+
+    if (loading) {
+        return (
+            <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.loadingText}>Loading...</Text>
+                    </View>
+                </View>
+            </Modal>
+        );
+    }
+
+    if (!profile) {
+        return (
+            <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.errorText}>Error loading profile.</Text>
+                    </View>
+                </View>
+            </Modal>
+        );
+    }
+
     return (
-        <Modal
-            visible={visible}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={onClose}
-        >
+        <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
             <View style={styles.modalContainer}>
                 <ScrollView contentContainerStyle={styles.profileModalContent}>
-                    {userProfile && (
-                        <>
-                            <View style={styles.iconContainer}>
-                                <TouchableOpacity onPress={handleViewAvatar} style={styles.iconButton}>
-                                    <FontAwesome name="user-circle" size={24} color="white" />
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={handleViewProfilePicture} style={styles.iconButton}>
-                                    <FontAwesome name="image" size={24} color="white" />
-                                </TouchableOpacity>
-                            </View>
-                            <Avatar avatarPath={userProfile.avatar} style={styles.profileAvatar} />
-                            <Text style={styles.profileNickname}>{userProfile.nickname}</Text>
-                            {userProfile.isOnline && (
-                                <View style={styles.onlineStatusContainer}>
-                                    <View style={styles.onlineIndicator} />
-                                    <Text style={styles.onlineText}>Online</Text>
-                                </View>
-                            )}
-                            <Text style={styles.profileUUID}>UUID: {userProfile.uuid}</Text>
-                            <View style={styles.ratingContainer}>
-                                <Text style={styles.profileRating}>Messages: <Text style={styles.highlightedRating}>{userProfile.chatMessageCount}</Text></Text>
-                                <Text style={styles.profileRating}>Private Messages: <Text style={styles.highlightedRating}>{userProfile.privateMessageCount}</Text></Text>
-                                <Text style={styles.profileRating}>Rating: <Text style={styles.highlightedRating}>{userProfile.rating}</Text></Text>
-                            </View>
-                            <View style={styles.profileDetailsContainer}>
-                                <Text style={styles.profileDetail}>{userProfile.maritalStatus}</Text>
-                                <Text style={styles.profileDetail}>{new Date(userProfile.dateOfBirth).toDateString()}</Text>
-                                <Text style={styles.profileDetail}>{userProfile.gender}</Text>
-                                <Text style={styles.profileDetail}>{userProfile.country}</Text>
-                            </View>
-                            {userProfile.bio ? (
-                                userProfile.bio.length > 100 ? (
-                                    <>
-                                        <View style={styles.profileBioContainer}>
-                                            {renderMessageContent(userProfile.bio.substring(0, 100) + '...')}
-                                        </View>
-                                        <TouchableOpacity style={styles.smallTransparentButton} onPress={handleViewFullBio}>
-                                            <Text style={styles.smallButtonText}>Read Full Bio</Text>
-                                        </TouchableOpacity>
-                                    </>
-                                ) : (
-                                    <View style={styles.profileBioContainer}>
-                                        {renderMessageContent(userProfile.bio)}
-                                    </View>
-                                )
-                            ) : (
+                    <View style={styles.iconContainer}>
+                        <TouchableOpacity onPress={handleViewAvatar} style={styles.iconButton}>
+                            <FontAwesome name="user-circle" size={24} color="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => onSendMessage(profile._id, profile.gender, profile.nickname)} style={styles.iconButton}>
+                            <FontAwesome name="envelope" size={24} color="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleViewProfilePicture} style={styles.iconButton}>
+                            <FontAwesome name="image" size={24} color="white" />
+                        </TouchableOpacity>
+                    </View>
+                    <Avatar avatarPath={profile.avatar} style={styles.profileAvatar} />
+                    <Text style={styles.profileNickname}>{profile.nickname}</Text>
+                    {profile.isOnline && (
+                        <View style={styles.onlineStatusContainer}>
+                            <View style={styles.onlineIndicator} />
+                            <Text style={styles.onlineText}>Online</Text>
+                        </View>
+                    )}
+                    <Text style={styles.profileUUID}>UUID: {profile.uuid}</Text>
+                    <View style={styles.ratingContainer}>
+                        <Text style={styles.profileRating}>Messages: <Text style={styles.highlightedRating}>{profile.chatMessageCount}</Text></Text>
+                        <Text style={styles.profileRating}>Private Messages: <Text style={styles.highlightedRating}>{profile.privateMessageCount}</Text></Text>
+                        <Text style={styles.profileRating}>Rating: <Text style={styles.highlightedRating}>{profile.rating}</Text></Text>
+                    </View>
+                    <View style={styles.profileDetailsContainer}>
+                        <Text style={styles.profileDetail}>{profile.maritalStatus}</Text>
+                        <Text style={styles.profileDetail}>{new Date(profile.dateOfBirth).toDateString()}</Text>
+                        <Text style={styles.profileDetail}>{profile.gender}</Text>
+                        <Text style={styles.profileDetail}>{profile.country}</Text>
+                    </View>
+                    {profile.bio ? (
+                        profile.bio.length > 100 ? (
+                            <>
                                 <View style={styles.profileBioContainer}>
-                                    <Text style={styles.noBioText}>User has not written a bio.</Text>
+                                    {renderMessageContent(profile.bio.substring(0, 100) + '...')}
                                 </View>
-                            )}
-                            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                                <Text style={styles.buttonText}>Close</Text>
-                            </TouchableOpacity>
-                        </>
+                                <TouchableOpacity style={styles.smallTransparentButton} onPress={handleViewFullBio}>
+                                    <Text style={styles.smallButtonText}>Read Full Bio</Text>
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <View style={styles.profileBioContainer}>
+                                {renderMessageContent(profile.bio)}
+                            </View>
+                        )
+                    ) : (
+                        <View style={styles.profileBioContainer}>
+                            <Text style={styles.noBioText}>User has not written a bio.</Text>
+                        </View>
                     )}
                 </ScrollView>
+                <Modal
+                    visible={viewingProfilePicture}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={handleCloseProfilePicture}
+                >
+                    <View style={styles.modalContainer}>
+                        <View style={styles.profileModalContent}>
+                            {profile && (
+                                <>
+                                    <Image source={{ uri: `http://192.168.202.192:5000/${profile.profilePicture}` }} style={styles.profilePicture} />
+                                    <TouchableOpacity style={styles.closeButton} onPress={handleCloseProfilePicture}>
+                                        <Text style={styles.buttonText}>Close</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </View>
+                    </View>
+                </Modal>
+                <Modal
+                    visible={viewingAvatar}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={handleCloseAvatar}
+                >
+                    <View style={styles.modalContainer}>
+                        <View style={styles.profileModalContent}>
+                            {profile && (
+                                <>
+                                    <Image source={{ uri: `http://192.168.202.192:5000/${profile.avatar}` }} style={styles.profilePicture} />
+                                    <TouchableOpacity style={styles.closeButton} onPress={handleCloseAvatar}>
+                                        <Text style={styles.buttonText}>Close</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </View>
+                    </View>
+                </Modal>
+                <Modal
+                    visible={viewingFullBio}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={handleCloseFullBio}
+                >
+                    <View style={styles.modalContainer}>
+                        <ScrollView contentContainerStyle={styles.profileModalContent}>
+                            {profile && (
+                                <>
+                                    <ScrollView style={styles.profileBioContainer}>
+                                        {renderMessageContent(profile.bio)}
+                                    </ScrollView>
+                                    <TouchableOpacity style={styles.closeButton} onPress={handleCloseFullBio}>
+                                        <Text style={styles.buttonText}>Close</Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </ScrollView>
+                    </View>
+                </Modal>
             </View>
-            <Modal
-                visible={viewingProfilePicture}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={handleCloseProfilePicture}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.profileModalContent}>
-                        {userProfile && (
-                            <>
-                                <Image source={{ uri: `http://192.168.172.192:5000/${userProfile.profilePicture}` }} style={styles.profilePicture} />
-                                <TouchableOpacity style={styles.closeButton} onPress={handleCloseProfilePicture}>
-                                    <Text style={styles.buttonText}>Close</Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
-                    </View>
-                </View>
-            </Modal>
-            <Modal
-                visible={viewingAvatar}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={handleCloseAvatar}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.profileModalContent}>
-                        {userProfile && (
-                            <>
-                                <Image source={{ uri: `http://192.168.172.192:5000/${userProfile.avatar}` }} style={styles.profilePicture} />
-                                <TouchableOpacity style={styles.closeButton} onPress={handleCloseAvatar}>
-                                    <Text style={styles.buttonText}>Close</Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
-                    </View>
-                </View>
-            </Modal>
-            <Modal
-                visible={viewingFullBio}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={handleCloseFullBio}
-            >
-                <View style={styles.modalContainer}>
-                    <ScrollView contentContainerStyle={styles.profileModalContent}>
-                        {userProfile && (
-                            <>
-                                <ScrollView style={styles.profileBioContainer}>
-                                    {renderMessageContent(userProfile.bio)}
-                                </ScrollView>
-                                <TouchableOpacity style={styles.closeButton} onPress={handleCloseFullBio}>
-                                    <Text style={styles.buttonText}>Close</Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
-                    </ScrollView>
-                </View>
-            </Modal>
         </Modal>
     );
 };
@@ -258,7 +296,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 20,
         alignItems: 'center',
-        maxHeight: '80%',
+        maxHeight: '90%', // Increase the max height to 85%
     },
     profileAvatar: {
         width: 100,
@@ -383,12 +421,6 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
     },
-    closeButton: {
-        backgroundColor: '#007bff',
-        padding: 10,
-        borderRadius: 5,
-        marginTop: 20,
-    },
     buttonText: {
         color: 'white',
         fontWeight: 'bold',
@@ -404,6 +436,14 @@ const styles = StyleSheet.create({
         width: 24, // Adjust size as needed
         height: 24, // Adjust size as needed
         marginBottom: -5, // Adjust to align with text
+    },
+    loadingText: {
+        fontSize: 18,
+        color: 'white',
+    },
+    errorText: {
+        fontSize: 18,
+        color: 'red',
     },
 });
 

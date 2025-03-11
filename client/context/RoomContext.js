@@ -17,7 +17,7 @@ export const RoomProvider = ({ children }) => {
             if (token) {
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
                 try {
-                    const res = await axios.get('http://192.168.172.192:5000/api/rooms');
+                    const res = await axios.get('http://192.168.202.192:5000/api/rooms');
                     setRooms(res.data);
                     if (user) {
                         setMyRooms(res.data.filter(room => room.creator._id === user._id));
@@ -36,7 +36,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                const res = await axios.post('http://192.168.172.192:5000/api/rooms/create', { name, isPrivate });
+                const res = await axios.post('http://192.168.202.192:5000/api/rooms/create', { name, isPrivate });
                 setRooms([...rooms, res.data]);
                 if (user) {
                     setMyRooms([...myRooms, res.data]);
@@ -55,7 +55,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                const res = await axios.get(`http://192.168.172.192:5000/api/rooms/${roomId}/users`);
+                const res = await axios.get(`http://192.168.202.192:5000/api/rooms/${roomId}/users`);
                 return res.data;
             } catch (err) {
                 console.error('Error fetching users in room:', err.response ? err.response.data : err.message);
@@ -69,7 +69,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                const res = await axios.post('http://192.168.172.192:5000/api/rooms/invite', { roomId, userId });
+                const res = await axios.post('http://192.168.202.192:5000/api/rooms/invite', { roomId, userId });
                 setRooms(rooms.map(room => room.roomId === roomId ? res.data : room));
             } catch (err) {
                 console.error('Error inviting user:', err.response ? err.response.data : err.message);
@@ -82,7 +82,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                const res = await axios.put(`http://192.168.172.192:5000/api/rooms/accept-invitation/${roomId}`);
+                const res = await axios.put(`http://192.168.202.192:5000/api/rooms/accept-invitation/${roomId}`);
                 setRooms(rooms.map(room => room.roomId === roomId ? res.data : room));
             } catch (err) {
                 console.error('Error accepting invitation:', err.response ? err.response.data : err.message);
@@ -95,7 +95,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                const res = await axios.put(`http://192.168.172.192:5000/api/rooms/reject-invitation/${roomId}`);
+                const res = await axios.put(`http://192.168.202.192:5000/api/rooms/reject-invitation/${roomId}`);
                 setRooms(rooms.map(room => room.roomId === roomId ? res.data : room));
             } catch (err) {
                 console.error('Error rejecting invitation:', err.response ? err.response.data : err.message);
@@ -108,7 +108,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                const res = await axios.put(`http://192.168.172.192:5000/api/rooms/change-ownership/${roomId}`, { newOwnerId });
+                const res = await axios.put(`http://192.168.202.192:5000/api/rooms/change-ownership/${roomId}`, { newOwnerId });
                 setRooms(rooms.map(room => room.roomId === roomId ? res.data : room));
                 setOwnerRooms(ownerRooms.map(room => room.roomId === roomId ? res.data : room));
             } catch (err) {
@@ -122,7 +122,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                const res = await axios.put(`http://192.168.172.192:5000/api/rooms/set-read-only/${roomId}`, { userId });
+                const res = await axios.put(`http://192.168.202.192:5000/api/rooms/set-read-only/${roomId}`, { userId });
                 setRooms(rooms.map(room => room.roomId === roomId ? res.data : room));
             } catch (err) {
                 console.error('Error setting read-only:', err.response ? err.response.data : err.message);
@@ -135,7 +135,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                const res = await axios.put(`http://192.168.172.192:5000/api/rooms/remove-read-only/${roomId}`, { userId });
+                const res = await axios.put(`http://192.168.202.192:5000/api/rooms/remove-read-only/${roomId}`, { userId });
                 setRooms(rooms.map(room => room.roomId === roomId ? res.data : room));
             } catch (err) {
                 console.error('Error removing read-only:', err.response ? err.response.data : err.message);
@@ -148,7 +148,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                await axios.delete(`http://192.168.172.192:5000/api/rooms/${roomId}`);
+                await axios.delete(`http://192.168.202.192:5000/api/rooms/${roomId}`);
                 setRooms(rooms.filter(room => room.roomId !== roomId));
                 setMyRooms(myRooms.filter(room => room.roomId !== roomId));
                 setOwnerRooms(ownerRooms.filter(room => room.roomId !== roomId));
@@ -163,7 +163,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                const res = await axios.put(`http://192.168.172.192:5000/api/rooms/change-privacy/${roomId}`, { isPrivate });
+                const res = await axios.put(`http://192.168.202.192:5000/api/rooms/change-privacy/${roomId}`, { isPrivate });
                 setRooms(rooms.map(room => room.roomId === roomId ? res.data : room));
                 return res.data;
             } catch (err) {
@@ -178,7 +178,7 @@ export const RoomProvider = ({ children }) => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             try {
-                const res = await axios.put(`http://192.168.172.192:5000/api/rooms/change-color/${roomId}`, { backgroundColor });
+                const res = await axios.put(`http://192.168.202.192:5000/api/rooms/change-color/${roomId}`, { backgroundColor });
                 setRooms(rooms.map(room => room.roomId === roomId ? res.data : room));
                 return res.data;
             } catch (err) {
