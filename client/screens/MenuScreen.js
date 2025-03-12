@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import AuthContext from '../context/AuthContext';
@@ -8,13 +8,26 @@ const { width, height } = Dimensions.get('window');
 const MenuScreen = ({ navigation }) => {
     const { user, logout } = useContext(AuthContext);
 
+    // Debugging: Log the user object
+    useEffect(() => {
+        console.log('User object in MenuScreen:', user);
+    }, [user]);
+
+    // Memoize the avatar URL to avoid unnecessary re-renders
+    const avatarUrl = useMemo(() => {
+        return user && user.avatar ? `https://chatfun-backend.onrender.com/${user.avatar}?${new Date().getTime()}` : null;
+    }, [user]);
+
     return (
         <View style={styles.container}>
-            {user && user.avatar ? (
+            {avatarUrl ? (
                 <Image
-                    source={{ uri: `http://192.168.202.192:5000/${user.avatar}` }}
+                    source={{ uri: avatarUrl }} // Use memoized avatar URL
                     style={styles.avatar}
                     alt="User's avatar in a large square shape"
+                    onError={(error) => {
+                        console.error('Error loading avatar:', error);
+                    }}
                 />
             ) : (
                 <View style={styles.avatarPlaceholder}>

@@ -286,3 +286,4 @@ exports.getUserCounts = async (req, res) => {
         res.status(500).json({ error: 'Server error. Please try again later.' });
     }
 };
+
