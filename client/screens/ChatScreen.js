@@ -403,447 +403,447 @@ const ChatScreen = ({ navigation, route }) => {
         }
     }, [user]);
 
-const handleBlockUser = useCallback(async (blockedUserId) => {
-    if (typeof blockedUserId !== 'string') {
-        console.error('Invalid blockedUserId:', blockedUserId);
-        return;
-    }
-    try {
-        console.log('User before blocking user:', user);
-        const res = await axios.put(`https://chatfun-backend.onrender.com/api/user/block-user/${blockedUserId}`);
-        setUser((prevUser) => ({
-            ...prevUser,
-            blockedUsers: [...prevUser.blockedUsers, res.data.blockedUsers.find(blockedUser => blockedUser._id === blockedUserId)]
-        }));
-        setAlertTitle('Success');
-        setAlertMessage('You have blocked the user successfully.');
-        setAlertType('success');
-        setAlertVisible(true);
-        console.log('User after blocking user:', user);
-        setUserOptionsVisible(false);
-    } catch (err) {
-        console.error('Error in handleBlockUser:', err);
-        setAlertTitle('Error');
-        setAlertMessage('An error occurred while blocking a user.');
-        setAlertType('error');
-        setAlertVisible(true);
-    }
-}, [user]);
-
-const handleUnblockUser = useCallback(async (blockedUserId) => {
-    if (typeof blockedUserId !== 'string') {
-        console.error('Invalid blockedUserId:', blockedUserId);
-        return;
-    }
-    try {
-        console.log('User before unblocking user:', user);
-        const res = await axios.put(`https://chatfun-backend.onrender.com/api/user/unblock-user/${blockedUserId}`);
-        setUser((prevUser) => ({
-            ...prevUser,
-            blockedUsers: prevUser.blockedUsers.filter(blockedUser => blockedUser._id !== blockedUserId)
-        }));
-        setAlertTitle('Success');
-        setAlertMessage('You have unblocked the user successfully.');
-        setAlertType('success');
-        setAlertVisible(true);
-        console.log('User after unblocking user:', user);
-        setUserOptionsVisible(false);
-    } catch (err) {
-        console.error('Error in handleUnblockUser:', err);
-        setAlertTitle('Error');
-        setAlertMessage('An error occurred while unblocking a user.');
-        setAlertType('error');
-        setAlertVisible(true);
-    }
-}, [user]);
-
-const handleSetReadOnly = useCallback(async (userId) => {
-    try {
-        await setReadOnly(roomId, userId);
-        setAlertTitle('Success');
-        setAlertMessage('User set to read-only mode');
-        setAlertType('success');
-        setAlertVisible(true);
-    } catch (err) {
-        console.error('Error setting read-only:', err.response ? err.response.data : err.message);
-        setAlertTitle('Error');
-        setAlertMessage(err.response ? err.response.data.error : 'An error occurred while setting read-only mode');
-        setAlertType('error');
-        setAlertVisible(true);
-    }
-}, [roomId, setReadOnly]);
-
-const handleRemoveReadOnly = useCallback(async (userId) => {
-    try {
-        await removeReadOnly(roomId, userId);
-        setAlertTitle('Success');
-        setAlertMessage('User removed from read-only mode');
-        setAlertType('success');
-        setAlertVisible(true);
-    } catch (err) {
-        console.error('Error removing read-only:', err);
-        setAlertTitle('Error');
-        setAlertMessage('An error occurred while removing read-only mode');
-        setAlertType('error');
-        setAlertVisible(true);
-    }
-}, [roomId, removeReadOnly]);
-
-const handleBanUser = useCallback(async (userId) => {
-    try {
-        const token = await AsyncStorage.getItem('token');
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const res = await axios.put('https://chatfun-backend.onrender.com/api/user/ban-user', { userId });
-        setAlertTitle('Success');
-        setAlertMessage('User banned successfully.');
-        setAlertType('success');
-        setAlertVisible(true);
-        setSelectedUserProfile((prevProfile) => ({ ...prevProfile, isBanned: true })); // Update the state
-        return res.data;
-    } catch (err) {
-        console.error('Error in handleBanUser:', err.response ? err.response.data : err.message);
-        setAlertTitle('Error');
-        setAlertMessage(err.response && err.response.data && err.response.data.error ? err.response.data.error : 'An error occurred while banning the user.');
-        setAlertType('error');
-        setAlertVisible(true);
-        throw err;
-    }
-}, []);
-
-const handleUnbanUser = useCallback(async (userId) => {
-    try {
-        const token = await AsyncStorage.getItem('token');
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const res = await axios.put('https://chatfun-backend.onrender.com/api/user/unban-user', { userId });
-        setAlertTitle('Success');
-        setAlertMessage('User unbanned successfully.');
-        setAlertType('success');
-        setAlertVisible(true);
-        setSelectedUserProfile((prevProfile) => ({ ...prevProfile, isBanned: false })); // Update the state
-        return res.data;
-    } catch (err) {
-        console.error('Error in handleUnbanUser:', err.response ? err.response.data : err.message);
-        setAlertTitle('Error');
-        setAlertMessage(err.response && err.response.data && err.response.data.error ? err.response.data.error : 'An error occurred while unbanning the user.');
-        setAlertType('error');
-        setAlertVisible(true);
-        throw err;
-    }
-}, []);
-
-const handleSetRole = async (userId, role, action) => {
-    try {
-        const token = await AsyncStorage.getItem('token');
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const res = await axios.put('https://chatfun-backend.onrender.com/api/admin/set-role', { userId, role, action });
-        setAlertTitle('Success');
-        setAlertMessage(`Role ${action === 'add' ? 'added to' : 'removed from'} user.`);
-        setAlertType('success');
-        setAlertVisible(true);
-        setSelectedUserProfile((prevProfile) => {
-            const updatedRoles = action === 'add' ? [...prevProfile.roles, role] : prevProfile.roles.filter(r => r !== role);
-            return { ...prevProfile, roles: updatedRoles };
-        });
-    } catch (err) {
-        console.error('Error setting role:', err.response ? err.response.data : err.message);
-        setAlertTitle('Error');
-        setAlertMessage('An error occurred while setting the role.');
-        setAlertType('error');
-        setAlertVisible(true);
-    }
-};
-
-const renderUserOptions = useCallback(async (userId) => {
-    try {
-        const token = await AsyncStorage.getItem('token');
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const res = await axios.get(`https://chatfun-backend.onrender.com/api/user/${userId}`);
-        setSelectedUserProfile(res.data);
-        setSelectedUserId(userId);
-        setUserOptionsVisible(true);
-    } catch (err) {
-        console.error('Error fetching user profile:', err);
-        setAlertTitle('Error');
-        setAlertMessage('An error occurred while fetching the user profile.');
-        setAlertType('error');
-        setAlertVisible(true);
-    }
-}, []);
-
-const handleViewProfile = useCallback(async (userId) => {
-    if (typeof userId !== 'string') {
-        console.error('Invalid userId:', userId);
-        return;
-    }
-    try {
-        console.log('Fetching user profile for userId:', userId);
-        const token = await AsyncStorage.getItem('token');
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const res = await axios.get(`https://chatfun-backend.onrender.com/api/user/${userId}`);
-        setSelectedUserProfile(res.data);
-        setProfileViewVisible(true);
-        setUserOptionsVisible(false);
-    } catch (err) {
-        console.error('Error in handleViewProfile:', err);
-        setAlertTitle('Error');
-        setAlertMessage('An error occurred while fetching the user profile.');
-        setAlertType('error');
-        setAlertVisible(true);
-    }
-}, [user]);
-
-const handlePrivateMessage = useCallback(async (userId) => {
-    if (typeof userId !== 'string') {
-        console.error('Invalid userId:', userId);
-        return;
-    }
-    try {
-        const token = await AsyncStorage.getItem('token');
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const res = await axios.get(`https://chatfun-backend.onrender.com/api/user/${userId}`);
-        setPrivateMessageRecipient(userId);
-        setPrivateMessageRecipientGender(res.data.gender);
-        setPrivateMessageRecipientNickname(res.data.nickname);
-        setPrivateMessageBoxVisible(true);
-        setUserOptionsVisible(false);
-    } catch (err) {
-        console.error('Error in handlePrivateMessage:', err);
-        setAlertTitle('Error');
-        setAlertMessage('An error occurred while initiating the private message.');
-        setAlertType('error');
-        setAlertVisible(true);
-    }
-}, [user]);
-
-const handleSendPrivateMessage = useCallback(async (message) => {
-    if (message.trim() && privateMessageRecipient) {
+    const handleBlockUser = useCallback(async (blockedUserId) => {
+        if (typeof blockedUserId !== 'string') {
+            console.error('Invalid blockedUserId:', blockedUserId);
+            return;
+        }
         try {
-            const res = await sendPrivateMessage(privateMessageRecipient, message);
-            if (res) {
-                if (socket) {
-                    socket.emit('privateMessage', res);
-                    setAlertTitle('Message Sent');
-                    setAlertMessage('Your message has been sent successfully.');
-                    setAlertType('success');
-                    setAlertVisible(true);
-                    console.log('Message sent:', res);
-                } else {
-                    console.error('Socket is undefined');
-                }
-            }
+            console.log('User before blocking user:', user);
+            const res = await axios.put(`https://chatfun-backend.onrender.com/api/user/block-user/${blockedUserId}`);
+            setUser((prevUser) => ({
+                ...prevUser,
+                blockedUsers: [...prevUser.blockedUsers, res.data.blockedUsers.find(blockedUser => blockedUser._id === blockedUserId)]
+            }));
+            setAlertTitle('Success');
+            setAlertMessage('You have blocked the user successfully.');
+            setAlertType('success');
+            setAlertVisible(true);
+            console.log('User after blocking user:', user);
+            setUserOptionsVisible(false);
         } catch (err) {
-            console.error('Error in handleSendPrivateMessage:', err);
+            console.error('Error in handleBlockUser:', err);
             setAlertTitle('Error');
-            setAlertMessage('An error occurred while sending the private message.');
+            setAlertMessage('An error occurred while blocking a user.');
             setAlertType('error');
             setAlertVisible(true);
         }
-    }
-}, [privateMessageRecipient, sendPrivateMessage, socket]);
+    }, [user]);
 
-const handleMarkAsRead = useCallback(async (messageId) => {
-    try {
-        await markAsRead(messageId);
-        setUnreadMessages((prevUnread) => prevUnread.filter(msg => msg._id !== messageId));
-        setPrivateMessageNotification(null);
-    } catch (err) {
-        console.error('Error in handleMarkAsRead:', err);
-        setAlertTitle('Error');
-        setAlertMessage('An error occurred while marking the message as read.');
-        setAlertType('error');
-        setAlertVisible(true);
-    }
-}, [markAsRead]);
-
-const handleRoomInfo = () => {
-    if (room && (room.owner._id === user._id || room.creator._id === user._id || isAdmin)) {
-        setSettingsVisible(true);
-    } else {
-        setInfoVisible(true);
-    }
-};
-
-const handleSwipeDown = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onPanResponderMove: Animated.event([null, { dy: pan.y }], { useNativeDriver: false }),
-    onPanResponderRelease: (e, gestureState) => {
-        if (gestureState.dy > 50) {
-            setShowNavBar(true);
-            Animated.spring(pan, {
-                toValue: { x: 0, y: 0 },
-                useNativeDriver: false,
-                friction: 8,
-                tension: 40,
-            }).start();
-        } else if (gestureState.dy < -50) {
-            setShowNavBar(false);
-            Animated.spring(pan, {
-                toValue: { x: 0, y: -100 },
-                useNativeDriver: false,
-                friction: 8,
-                tension: 40,
-            }).start();
-        } else {
-            Animated.spring(pan, {
-                toValue: showNavBar ? { x: 0, y: 0 } : { x: 0, y: -100 },
-                useNativeDriver: false,
-                friction: 8,
-                tension: 40,
-            }).start();
+    const handleUnblockUser = useCallback(async (blockedUserId) => {
+        if (typeof blockedUserId !== 'string') {
+            console.error('Invalid blockedUserId:', blockedUserId);
+            return;
         }
-    },
-}), [pan, showNavBar, setShowNavBar]);
+        try {
+            console.log('User before unblocking user:', user);
+            const res = await axios.put(`https://chatfun-backend.onrender.com/api/user/unblock-user/${blockedUserId}`);
+            setUser((prevUser) => ({
+                ...prevUser,
+                blockedUsers: prevUser.blockedUsers.filter(blockedUser => blockedUser._id !== blockedUserId)
+            }));
+            setAlertTitle('Success');
+            setAlertMessage('You have unblocked the user successfully.');
+            setAlertType('success');
+            setAlertVisible(true);
+            console.log('User after unblocking user:', user);
+            setUserOptionsVisible(false);
+        } catch (err) {
+            console.error('Error in handleUnblockUser:', err);
+            setAlertTitle('Error');
+            setAlertMessage('An error occurred while unblocking a user.');
+            setAlertType('error');
+            setAlertVisible(true);
+        }
+    }, [user]);
 
-const handleImageClick = (fileName) => {
-    navigation.navigate('ImageView', { fileName });
-};
+    const handleSetReadOnly = useCallback(async (userId) => {
+        try {
+            await setReadOnly(roomId, userId);
+            setAlertTitle('Success');
+            setAlertMessage('User set to read-only mode');
+            setAlertType('success');
+            setAlertVisible(true);
+        } catch (err) {
+            console.error('Error setting read-only:', err.response ? err.response.data : err.message);
+            setAlertTitle('Error');
+            setAlertMessage(err.response ? err.response.data.error : 'An error occurred while setting read-only mode');
+            setAlertType('error');
+            setAlertVisible(true);
+        }
+    }, [roomId, setReadOnly]);
 
-const handleSendMessageFromProfile = (recipientId, recipientGender, recipientNickname) => {
-    setPrivateMessageRecipient(recipientId);
-    setPrivateMessageRecipientGender(recipientGender);
-    setPrivateMessageRecipientNickname(recipientNickname);
-    setPrivateMessageBoxVisible(true);
-    setProfileViewVisible(false);
-};
+    const handleRemoveReadOnly = useCallback(async (userId) => {
+        try {
+            await removeReadOnly(roomId, userId);
+            setAlertTitle('Success');
+            setAlertMessage('User removed from read-only mode');
+            setAlertType('success');
+            setAlertVisible(true);
+        } catch (err) {
+            console.error('Error removing read-only:', err);
+            setAlertTitle('Error');
+            setAlertMessage('An error occurred while removing read-only mode');
+            setAlertType('error');
+            setAlertVisible(true);
+        }
+    }, [roomId, removeReadOnly]);
 
-return (
-    <View style={[styles.container, { backgroundColor: room?.backgroundColor || '#17202a' }]} {...handleSwipeDown.panHandlers}>
-        {user && (
-            <>
-                <TopNavigationBar
-                    navigation={navigation}
-                    handleRoomInfo={handleRoomInfo}
-                    showNavBar={showNavBar}
-                    setShowNavBar={setShowNavBar}
-                    roomId={roomId || defaultRoomId}
-                />
-                <FlatList
-                    ref={flatListRef}
-                    data={messages}
-                    renderItem={({ item }) => {
-                        console.log('Rendering message item:', item);
-                        return <MessageItem item={item} renderUserOptions={renderUserOptions} handleImageClick={handleImageClick} />;
-                    }}
-                    keyExtractor={(item) => item._id ? item._id.toString() : Math.random().toString()} // Ensure each item has a unique key
-                    onContentSizeChange={() => {
-                        console.log('Content size changed, scrolling to end');
-                        flatListRef.current.scrollToEnd({ animated: false }); // Scroll to the bottom without animation
-                    }}
-                    onLayout={() => {
-                        console.log('Layout changed, scrolling to end');
-                        flatListRef.current.scrollToEnd({ animated: false }); // Scroll to the bottom without animation
-                    }}
-                    initialNumToRender={10}
-                    maxToRenderPerBatch={10}
-                    windowSize={21}
-                    extraData={messages}
-                    style={styles.scrollView}
-                />
-                <MessageInput sendMessage={sendMessage} sendImage={sendImage} />
-                <TouchableOpacity style={styles.hamburgerIcon} onPress={() => {
-                    setMenuVisible(true);
-                    Animated.spring(menuPan, {
-                        toValue: { x: 0, y: 0 },
-                        useNativeDriver: false,
-                    }).start();
-                }}>
-                    <FontAwesome name="bars" size={24} color="green" />
-                </TouchableOpacity>
-                {menuVisible && (
-                    <Animated.View
-                        style={[styles.menuContainer, { transform: [{ translateX: menuPan.x }] }]}
-                        {...menuPanResponder.panHandlers}
-                    >
-                        <MenuScreen navigation={navigation} />
-                    </Animated.View>
-                )}
-                <UserOptionsModal
-                    visible={userOptionsVisible}
-                    onClose={() => setUserOptionsVisible(false)}
-                    userId={selectedUserId}
-                    isFriend={isFriend(selectedUserId)}
-                    isBlocked={isBlocked(selectedUserId)}
-                    isReadOnly={room?.readOnlyUsers.includes(selectedUserId)}
-                    isBanned={selectedUserProfile?.isBanned} // Add this line
-                    handleAddFriend={handleAddFriend}
-                    handleRemoveFriend={handleRemoveFriend}
-                    handleBlockUser={handleBlockUser}
-                    handleUnblockUser={handleUnblockUser}
-                    handleViewProfile={handleViewProfile}
-                    handlePrivateMessage={handlePrivateMessage}
-                    handleSetReadOnly={handleSetReadOnly}
-                    handleRemoveReadOnly={handleRemoveReadOnly}
-                    handleBanUser={handleBanUser} // Add this line
-                    handleUnbanUser={handleUnbanUser} // Add this line
-                    isAdmin={isAdmin}
-                    handleSetRole={handleSetRole}
-                    userRoles={selectedUserProfile?.roles || []}
-                    currentUserRoles={user.roles || []}
-                    isRoomOwner={room?.owner._id === user._id}
-                    isRoomCreator={room?.creator._id === user._id}
-                    currentRoomId={roomId || defaultRoomId}
-                    targetUserRoomId={selectedUserProfile?.roomId}
-                />
+    const handleBanUser = useCallback(async (userId) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            const res = await axios.put('https://chatfun-backend.onrender.com/api/user/ban-user', { userId });
+            setAlertTitle('Success');
+            setAlertMessage('User banned successfully.');
+            setAlertType('success');
+            setAlertVisible(true);
+            setSelectedUserProfile((prevProfile) => ({ ...prevProfile, isBanned: true })); // Update the state
+            return res.data;
+        } catch (err) {
+            console.error('Error in handleBanUser:', err.response ? err.response.data : err.message);
+            setAlertTitle('Error');
+            setAlertMessage(err.response && err.response.data && err.response.data.error ? err.response.data.error : 'An error occurred while banning the user.');
+            setAlertType('error');
+            setAlertVisible(true);
+            throw err;
+        }
+    }, []);
 
-                <ProfileViewModal
-                    visible={profileViewVisible}
-                    onClose={() => setProfileViewVisible(false)}
-                    userId={selectedUserId}
-                    onSendMessage={handleSendMessageFromProfile}
-                />
-                <PrivateMessageBox
-                    visible={privateMessageBoxVisible}
-                    onClose={() => setPrivateMessageBoxVisible(false)}
-                    onSend={handleSendPrivateMessage}
-                    recipientId={privateMessageRecipient}
-                    recipientGender={privateMessageRecipientGender}
-                    recipientNickname={privateMessageRecipientNickname}
-                />
-                {privateMessageNotification && (
-                    <PrivateMessageNotification
-                        message={privateMessageNotification}
-                        onClose={() => setPrivateMessageNotification(null)}
-                        onReply={(senderId, senderGender, senderNickname) => {
-                            console.log('Replying to:', senderId, senderGender, senderNickname);
-                            setPrivateMessageRecipient(senderId);
-                            setPrivateMessageRecipientGender(senderGender);
-                            setPrivateMessageRecipientNickname(senderNickname);
-                            setPrivateMessageBoxVisible(true);
-                            setPrivateMessageNotification(null);
-                        }}
-                        onViewProfile={() => handleViewProfile(privateMessageNotification.senderId._id)}
-                        onMarkAsRead={() => handleMarkAsRead(privateMessageNotification._id)}
+    const handleUnbanUser = useCallback(async (userId) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            const res = await axios.put('https://chatfun-backend.onrender.com/api/user/unban-user', { userId });
+            setAlertTitle('Success');
+            setAlertMessage('User unbanned successfully.');
+            setAlertType('success');
+            setAlertVisible(true);
+            setSelectedUserProfile((prevProfile) => ({ ...prevProfile, isBanned: false })); // Update the state
+            return res.data;
+        } catch (err) {
+            console.error('Error in handleUnbanUser:', err.response ? err.response.data : err.message);
+            setAlertTitle('Error');
+            setAlertMessage(err.response && err.response.data && err.response.data.error ? err.response.data.error : 'An error occurred while unbanning the user.');
+            setAlertType('error');
+            setAlertVisible(true);
+            throw err;
+        }
+    }, []);
+
+    const handleSetRole = async (userId, role, action) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            const res = await axios.put('https://chatfun-backend.onrender.com/api/admin/set-role', { userId, role, action });
+            setAlertTitle('Success');
+            setAlertMessage(`Role ${action === 'add' ? 'added to' : 'removed from'} user.`);
+            setAlertType('success');
+            setAlertVisible(true);
+            setSelectedUserProfile((prevProfile) => {
+                const updatedRoles = action === 'add' ? [...prevProfile.roles, role] : prevProfile.roles.filter(r => r !== role);
+                return { ...prevProfile, roles: updatedRoles };
+            });
+        } catch (err) {
+            console.error('Error setting role:', err.response ? err.response.data : err.message);
+            setAlertTitle('Error');
+            setAlertMessage('An error occurred while setting the role.');
+            setAlertType('error');
+            setAlertVisible(true);
+        }
+    };
+
+    const renderUserOptions = useCallback(async (userId) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            const res = await axios.get(`https://chatfun-backend.onrender.com/api/user/${userId}`);
+            setSelectedUserProfile(res.data);
+            setSelectedUserId(userId);
+            setUserOptionsVisible(true);
+        } catch (err) {
+            console.error('Error fetching user profile:', err);
+            setAlertTitle('Error');
+            setAlertMessage('An error occurred while fetching the user profile.');
+            setAlertType('error');
+            setAlertVisible(true);
+        }
+    }, []);
+
+    const handleViewProfile = useCallback(async (userId) => {
+        if (typeof userId !== 'string') {
+            console.error('Invalid userId:', userId);
+            return;
+        }
+        try {
+            console.log('Fetching user profile for userId:', userId);
+            const token = await AsyncStorage.getItem('token');
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            const res = await axios.get(`https://chatfun-backend.onrender.com/api/user/${userId}`);
+            setSelectedUserProfile(res.data);
+            setProfileViewVisible(true);
+            setUserOptionsVisible(false);
+        } catch (err) {
+            console.error('Error in handleViewProfile:', err);
+            setAlertTitle('Error');
+            setAlertMessage('An error occurred while fetching the user profile.');
+            setAlertType('error');
+            setAlertVisible(true);
+        }
+    }, [user]);
+
+    const handlePrivateMessage = useCallback(async (userId) => {
+        if (typeof userId !== 'string') {
+            console.error('Invalid userId:', userId);
+            return;
+        }
+        try {
+            const token = await AsyncStorage.getItem('token');
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            const res = await axios.get(`https://chatfun-backend.onrender.com/api/user/${userId}`);
+            setPrivateMessageRecipient(userId);
+            setPrivateMessageRecipientGender(res.data.gender);
+            setPrivateMessageRecipientNickname(res.data.nickname);
+            setPrivateMessageBoxVisible(true);
+            setUserOptionsVisible(false);
+        } catch (err) {
+            console.error('Error in handlePrivateMessage:', err);
+            setAlertTitle('Error');
+            setAlertMessage('An error occurred while initiating the private message.');
+            setAlertType('error');
+            setAlertVisible(true);
+        }
+    }, [user]);
+
+    const handleSendPrivateMessage = useCallback(async (message) => {
+        if (message.trim() && privateMessageRecipient) {
+            try {
+                const res = await sendPrivateMessage(privateMessageRecipient, message);
+                if (res) {
+                    if (socket) {
+                        socket.emit('privateMessage', res);
+                        setAlertTitle('Message Sent');
+                        setAlertMessage('Your message has been sent successfully.');
+                        setAlertType('success');
+                        setAlertVisible(true);
+                        console.log('Message sent:', res);
+                    } else {
+                        console.error('Socket is undefined');
+                    }
+                }
+            } catch (err) {
+                console.error('Error in handleSendPrivateMessage:', err);
+                setAlertTitle('Error');
+                setAlertMessage('An error occurred while sending the private message.');
+                setAlertType('error');
+                setAlertVisible(true);
+            }
+        }
+    }, [privateMessageRecipient, sendPrivateMessage, socket]);
+
+    const handleMarkAsRead = useCallback(async (messageId) => {
+        try {
+            await markAsRead(messageId);
+            setUnreadMessages((prevUnread) => prevUnread.filter(msg => msg._id !== messageId));
+            setPrivateMessageNotification(null);
+        } catch (err) {
+            console.error('Error in handleMarkAsRead:', err);
+            setAlertTitle('Error');
+            setAlertMessage('An error occurred while marking the message as read.');
+            setAlertType('error');
+            setAlertVisible(true);
+        }
+    }, [markAsRead]);
+
+    const handleRoomInfo = () => {
+        if (room && (room.owner._id === user._id || room.creator._id === user._id || isAdmin)) {
+            setSettingsVisible(true);
+        } else {
+            setInfoVisible(true);
+        }
+    };
+
+    const handleSwipeDown = useMemo(() => PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onPanResponderMove: Animated.event([null, { dy: pan.y }], { useNativeDriver: false }),
+        onPanResponderRelease: (e, gestureState) => {
+            if (gestureState.dy > 50) {
+                setShowNavBar(true);
+                Animated.spring(pan, {
+                    toValue: { x: 0, y: 0 },
+                    useNativeDriver: false,
+                    friction: 8,
+                    tension: 40,
+                }).start();
+            } else if (gestureState.dy < -50) {
+                setShowNavBar(false);
+                Animated.spring(pan, {
+                    toValue: { x: 0, y: -100 },
+                    useNativeDriver: false,
+                    friction: 8,
+                    tension: 40,
+                }).start();
+            } else {
+                Animated.spring(pan, {
+                    toValue: showNavBar ? { x: 0, y: 0 } : { x: 0, y: -100 },
+                    useNativeDriver: false,
+                    friction: 8,
+                    tension: 40,
+                }).start();
+            }
+        },
+    }), [pan, showNavBar, setShowNavBar]);
+
+    const handleImageClick = (fileName) => {
+        navigation.navigate('ImageView', { fileName });
+    };
+
+    const handleSendMessageFromProfile = (recipientId, recipientGender, recipientNickname) => {
+        setPrivateMessageRecipient(recipientId);
+        setPrivateMessageRecipientGender(recipientGender);
+        setPrivateMessageRecipientNickname(recipientNickname);
+        setPrivateMessageBoxVisible(true);
+        setProfileViewVisible(false);
+    };
+
+    return (
+        <View style={[styles.container, { backgroundColor: room?.backgroundColor || '#17202a' }]} {...handleSwipeDown.panHandlers}>
+            {user && (
+                <>
+                    <TopNavigationBar
+                        navigation={navigation}
+                        handleRoomInfo={handleRoomInfo}
+                        showNavBar={showNavBar}
+                        setShowNavBar={setShowNavBar}
+                        roomId={roomId || defaultRoomId}
                     />
-                )}
-                <Modal visible={infoVisible} transparent={true} animationType="slide" onRequestClose={() => setInfoVisible(false)}>
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalContent}>
-                            <Text style={styles.modalTitle}>Room Information</Text>
-                            {room ? (
-                                <>
-                                    <Text style={styles.modalText}>Room Name: {room.name}</Text>
-                                <Text style={styles.modalText}>Room ID: {room.roomId}</Text>
-                                <Text style={styles.modalText}>Creator: {room.creator.nickname} (UUID: {room.creator.uuid})</Text>
-                                <Text style={styles.modalText}>Owner: {room.owner.nickname} (UUID: {room.owner.uuid})</Text>
-                            </>
-                        ) : (
-                            <Text style={styles.modalText}>Loading...</Text>
-                        )}
-                        <TouchableOpacity style={styles.closeButton} onPress={() => setInfoVisible(false)}>
-                            <Text style={styles.buttonText}>Close</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-            <RoomSettings
-                room={room}
-                visible={settingsVisible}
-                onClose={() => setSettingsVisible(false)}
-            />
-        </>
-    )}
-</View>
-);
+                    <FlatList
+                        ref={flatListRef}
+                        data={messages}
+                        renderItem={({ item }) => {
+                            console.log('Rendering message item:', item);
+                            return <MessageItem item={item} renderUserOptions={renderUserOptions} handleImageClick={handleImageClick} />;
+                        }}
+                        keyExtractor={(item) => item._id ? item._id.toString() : Math.random().toString()} // Ensure each item has a unique key
+                        onContentSizeChange={() => {
+                            console.log('Content size changed, scrolling to end');
+                            flatListRef.current.scrollToEnd({ animated: false }); // Scroll to the bottom without animation
+                        }}
+                        onLayout={() => {
+                            console.log('Layout changed, scrolling to end');
+                            flatListRef.current.scrollToEnd({ animated: false }); // Scroll to the bottom without animation
+                        }}
+                        initialNumToRender={10}
+                        maxToRenderPerBatch={10}
+                        windowSize={21}
+                        extraData={messages}
+                        style={styles.scrollView}
+                    />
+                    <MessageInput sendMessage={sendMessage} sendImage={sendImage} />
+                    <TouchableOpacity style={styles.hamburgerIcon} onPress={() => {
+                        setMenuVisible(true);
+                        Animated.spring(menuPan, {
+                            toValue: { x: 0, y: 0 },
+                            useNativeDriver: false,
+                        }).start();
+                    }}>
+                        <FontAwesome name="bars" size={24} color="green" />
+                    </TouchableOpacity>
+                    {menuVisible && (
+                        <Animated.View
+                            style={[styles.menuContainer, { transform: [{ translateX: menuPan.x }] }]}
+                            {...menuPanResponder.panHandlers}
+                        >
+                            <MenuScreen navigation={navigation} />
+                        </Animated.View>
+                    )}
+                    <UserOptionsModal
+                        visible={userOptionsVisible}
+                        onClose={() => setUserOptionsVisible(false)}
+                        userId={selectedUserId}
+                        isFriend={isFriend(selectedUserId)}
+                        isBlocked={isBlocked(selectedUserId)}
+                        isReadOnly={room?.readOnlyUsers.includes(selectedUserId)}
+                        isBanned={selectedUserProfile?.isBanned} // Add this line
+                        handleAddFriend={handleAddFriend}
+                        handleRemoveFriend={handleRemoveFriend}
+                        handleBlockUser={handleBlockUser}
+                        handleUnblockUser={handleUnblockUser}
+                        handleViewProfile={handleViewProfile}
+                        handlePrivateMessage={handlePrivateMessage}
+                        handleSetReadOnly={handleSetReadOnly}
+                        handleRemoveReadOnly={handleRemoveReadOnly}
+                        handleBanUser={handleBanUser} // Add this line
+                        handleUnbanUser={handleUnbanUser} // Add this line
+                        isAdmin={isAdmin}
+                        handleSetRole={handleSetRole}
+                        userRoles={selectedUserProfile?.roles || []}
+                        currentUserRoles={user.roles || []}
+                        isRoomOwner={room?.owner._id === user._id}
+                        isRoomCreator={room?.creator._id === user._id}
+                        currentRoomId={roomId || defaultRoomId}
+                        targetUserRoomId={selectedUserProfile?.roomId}
+                    />
+
+                    <ProfileViewModal
+                        visible={profileViewVisible}
+                        onClose={() => setProfileViewVisible(false)}
+                        userId={selectedUserId}
+                        onSendMessage={handleSendMessageFromProfile}
+                    />
+                    <PrivateMessageBox
+                        visible={privateMessageBoxVisible}
+                        onClose={() => setPrivateMessageBoxVisible(false)}
+                        onSend={handleSendPrivateMessage}
+                        recipientId={privateMessageRecipient}
+                        recipientGender={privateMessageRecipientGender}
+                        recipientNickname={privateMessageRecipientNickname}
+                    />
+                    {privateMessageNotification && (
+                        <PrivateMessageNotification
+                            message={privateMessageNotification}
+                            onClose={() => setPrivateMessageNotification(null)}
+                            onReply={(senderId, senderGender, senderNickname) => {
+                                console.log('Replying to:', senderId, senderGender, senderNickname);
+                                setPrivateMessageRecipient(senderId);
+                                setPrivateMessageRecipientGender(senderGender);
+                                setPrivateMessageRecipientNickname(senderNickname);
+                                setPrivateMessageBoxVisible(true);
+                                setPrivateMessageNotification(null);
+                            }}
+                            onViewProfile={() => handleViewProfile(privateMessageNotification.senderId._id)}
+                            onMarkAsRead={() => handleMarkAsRead(privateMessageNotification._id)}
+                        />
+                    )}
+                    <Modal visible={infoVisible} transparent={true} animationType="slide" onRequestClose={() => setInfoVisible(false)}>
+                        <View style={styles.modalContainer}>
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalTitle}>Room Information</Text>
+                                {room ? (
+                                    <>
+                                        <Text style={styles.modalText}>Room Name: {room.name}</Text>
+                                        <Text style={styles.modalText}>Room ID: {room.roomId}</Text>
+                                        <Text style={styles.modalText}>Creator: {room.creator.nickname} (UUID: {room.creator.uuid})</Text>
+                                        <Text style={styles.modalText}>Owner: {room.owner.nickname} (UUID: {room.owner.uuid})</Text>
+                                    </>
+                                ) : (
+                                    <Text style={styles.modalText}>Loading...</Text>
+                                )}
+                                <TouchableOpacity style={styles.closeButton} onPress={() => setInfoVisible(false)}>
+                                    <Text style={styles.buttonText}>Close</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Modal>
+                    <RoomSettings
+                        room={room}
+                        visible={settingsVisible}
+                        onClose={() => setSettingsVisible(false)}
+                    />
+                </>
+            )}
+        </View>
+    );
 };
 
 export default ChatScreen;
