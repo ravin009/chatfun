@@ -13,7 +13,6 @@ const multer = require('multer');
 const User = require('./models/User'); // Import User model
 const Room = require('./models/Room'); // Import Room model
 const DefaultRoom = require('./models/DefaultRoom');
-const connectDB = require('./config/db'); // Import connectDB
 
 dotenv.config(); // Load environment variables
 
@@ -30,7 +29,10 @@ const io = socketIo(server);
 app.use(cors());
 app.use(express.json());
 
-connectDB(); // Call connectDB to connect to MongoDB
+const db = process.env.MONGO_URI;
+mongoose.connect(db)
+    .then(() => console.log('MongoDB connected'))
+    .catch(err => console.log(err));
 
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
