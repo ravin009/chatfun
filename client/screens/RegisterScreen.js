@@ -10,6 +10,8 @@ const RegisterScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [nicknameError, setNicknameError] = useState('');
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
@@ -94,8 +96,11 @@ const RegisterScreen = ({ navigation }) => {
                     placeholderTextColor="#ccc"
                     value={password}
                     onChangeText={setPassword}
-                    secureTextEntry
+                    secureTextEntry={!showPassword}
                 />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={24} color="white" />
+                </TouchableOpacity>
             </View>
             <View style={styles.inputContainer}>
                 <FontAwesome name="lock" size={24} color="white" />
@@ -105,8 +110,11 @@ const RegisterScreen = ({ navigation }) => {
                     placeholderTextColor="#ccc"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
-                    secureTextEntry
+                    secureTextEntry={!showConfirmPassword}
                 />
+                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                    <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={24} color="white" />
+                </TouchableOpacity>
             </View>
             {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
             <TouchableOpacity style={styles.button} onPress={handleRegister}>

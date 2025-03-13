@@ -10,6 +10,8 @@ const ResetPasswordScreen = ({ navigation }) => {
     const [otp, setOtp] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [alertVisible, setAlertVisible] = useState(false); // Add alertVisible state
     const [alertTitle, setAlertTitle] = useState(''); // Add alertTitle state
     const [alertMessage, setAlertMessage] = useState(''); // Add alertMessage state
@@ -79,8 +81,11 @@ const ResetPasswordScreen = ({ navigation }) => {
                     placeholderTextColor="#ccc"
                     value={newPassword}
                     onChangeText={setNewPassword}
-                    secureTextEntry
+                    secureTextEntry={!showNewPassword}
                 />
+                <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                    <FontAwesome name={showNewPassword ? "eye-slash" : "eye"} size={24} color="white" />
+                </TouchableOpacity>
             </View>
             <View style={styles.inputContainer}>
                 <FontAwesome name="lock" size={24} color="white" />
@@ -90,8 +95,11 @@ const ResetPasswordScreen = ({ navigation }) => {
                     placeholderTextColor="#ccc"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
-                    secureTextEntry
+                    secureTextEntry={!showConfirmPassword}
                 />
+                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                    <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={24} color="white" />
+                </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.button} onPress={handleResetPassword}>
                 <LinearGradient

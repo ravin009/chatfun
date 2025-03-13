@@ -10,6 +10,9 @@ const PasswordSettingsScreen = ({ navigation }) => {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [passwordError, setPasswordError] = useState('');
     const [alertVisible, setAlertVisible] = useState(false);
     const [alertTitle, setAlertTitle] = useState('');
@@ -78,30 +81,48 @@ const PasswordSettingsScreen = ({ navigation }) => {
                 alt="Chatify logo with a 1:1 ratio"
             />
             <Text style={styles.title}>Change Password</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="Current Password"
-                placeholderTextColor="#ccc"
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                secureTextEntry
-            />
-            <TextInput
-                style={[styles.input, passwordError ? styles.errorInput : null]}
-                placeholder="New Password"
-                placeholderTextColor="#ccc"
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry
-            />
-            <TextInput
-                style={[styles.input, passwordError ? styles.errorInput : null]}
-                placeholder="Confirm New Password"
-                placeholderTextColor="#ccc"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-            />
+            <View style={styles.inputContainer}>
+                <FontAwesome name="lock" size={24} color="white" />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Current Password"
+                    placeholderTextColor="#ccc"
+                    value={currentPassword}
+                    onChangeText={setCurrentPassword}
+                    secureTextEntry={!showCurrentPassword}
+                />
+                <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+                    <FontAwesome name={showCurrentPassword ? "eye-slash" : "eye"} size={24} color="white" />
+                </TouchableOpacity>
+            </View>
+            <View style={styles.inputContainer}>
+                <FontAwesome name="lock" size={24} color="white" />
+                <TextInput
+                    style={[styles.input, passwordError ? styles.errorInput : null]}
+                    placeholder="New Password"
+                    placeholderTextColor="#ccc"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showNewPassword}
+                />
+                <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                    <FontAwesome name={showNewPassword ? "eye-slash" : "eye"} size={24} color="white" />
+                </TouchableOpacity>
+            </View>
+            <View style={styles.inputContainer}>
+                <FontAwesome name="lock" size={24} color="white" />
+                <TextInput
+                    style={[styles.input, passwordError ? styles.errorInput : null]}
+                    placeholder="Confirm New Password"
+                    placeholderTextColor="#ccc"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                />
+                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                    <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={24} color="white" />
+                </TouchableOpacity>
+            </View>
             {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
             <TouchableOpacity style={styles.button} onPress={handleChangePassword}>
                 <LinearGradient
@@ -140,7 +161,9 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         color: '#fff', // Make the title text white for better contrast
     },
-    input: {
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
         width: '80%',
         padding: 10,
         marginBottom: 10,
@@ -148,6 +171,10 @@ const styles = StyleSheet.create({
         borderColor: '#ccc',
         borderRadius: 25,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    input: {
+        flex: 1,
+        marginLeft: 10,
         color: '#fff', // Make the input text white for better contrast
     },
     errorInput: {

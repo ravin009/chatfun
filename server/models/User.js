@@ -1,6 +1,3 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-
 const UserSchema = new mongoose.Schema({
     nickname: {
         type: String,
@@ -32,9 +29,9 @@ const UserSchema = new mongoose.Schema({
     rating: { type: Number, default: 0 },
     profilePicture: { type: String },
     avatar: { type: String },
-    maritalStatus: { type: String },
-    dateOfBirth: { type: Date },
-    gender: { type: String },
+    maritalStatus: { type: String, default: 'Single' }, // Default value
+    dateOfBirth: { type: Date, default: new Date('2001-01-01') }, // Default value
+    gender: { type: String, default: 'Female' }, // Default value
     country: { type: String },
     bio: { type: String },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
