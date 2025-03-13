@@ -1,3 +1,6 @@
+const mongoose = require('mongoose'); // Add this line to import mongoose
+const bcrypt = require('bcrypt');
+
 const UserSchema = new mongoose.Schema({
     nickname: {
         type: String,
