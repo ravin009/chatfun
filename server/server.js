@@ -151,5 +151,10 @@ app.post('/api/chat/send-image', upload.single('image'), (req, res) => {
     res.json({ fileName: req.file.filename });
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

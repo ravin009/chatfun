@@ -1,0 +1,41 @@
+{
+    "expo": {
+      "name": "ChatFun",
+      "slug": "chatfun",
+      "version": "1.0.0",
+      "orientation": "portrait",
+      "icon": "./assets/icon.png",
+      "updates": {
+        "fallbackToCacheTimeout": 0
+      },
+      "assetBundlePatterns": [
+        "**/*",
+        "assets/animations/*.json"
+      ],
+      "ios": {
+        "supportsTablet": true,
+        "bundleIdentifier": "com.chatfun.app"
+      },
+      "android": {
+        "adaptiveIcon": {
+          "foregroundImage": "./assets/adaptive-icon.png",
+          "backgroundColor": "#FFFFFF"
+        },
+        "package": "com.chatfun.app",
+        "permissions": [
+          "CAMERA",
+          "READ_EXTERNAL_STORAGE",
+          "WRITE_EXTERNAL_STORAGE"
+        ]
+      },
+      "web": {
+        "favicon": "./assets/favicon.png"
+      },
+      "extra": {
+        "eas": {
+          "projectId": "4db66be4-7c72-4606-a069-7faf1793effe"
+        }
+      }
+    }
+  }
+  
