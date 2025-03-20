@@ -10,6 +10,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const bodyParser = require('body-parser');
 const User = require('./models/User'); // Import User model
 const Room = require('./models/Room'); // Import Room model
 const DefaultRoom = require('./models/DefaultRoom');
@@ -29,6 +30,10 @@ const io = socketIo(server);
 
 app.use(cors());
 app.use(express.json());
+
+// Increase the payload size limit
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 connectDB(); // Call connectDB to connect to MongoDB
 
