@@ -147,7 +147,7 @@ const storage = multer.diskStorage({
     },
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }); // Increase file size limit to 50MB
 
 app.post('/api/chat/send-image', upload.single('image'), (req, res) => {
     if (!req.file) {
