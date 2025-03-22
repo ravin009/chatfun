@@ -1,4 +1,4 @@
-const mongoose = require('mongoose'); // Add this line to import mongoose
+const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 const UserSchema = new mongoose.Schema({
@@ -28,7 +28,7 @@ const UserSchema = new mongoose.Schema({
         maxlength: 1024,
     },
     uuid: { type: String, required: true, unique: true },
-    createdAt: { type: Date, default: Date.now },
+    createdAt: { type: Date, default: Date.now, index: true },
     rating: { type: Number, default: 0 },
     profilePicture: { type: String },
     avatar: { type: String },

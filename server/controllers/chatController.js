@@ -1,7 +1,6 @@
 const overrideConsole = require('../utils/consoleOverride');
 overrideConsole();
 
-
 const Chat = require('../models/Chat');
 const User = require('../models/User');
 const Room = require('../models/Room');
@@ -76,12 +75,12 @@ exports.getMessages = async (req, res) => {
     const { roomId } = req.params;
     try {
         const user = await User.findById(req.user.id);
-        const chats = await Chat.find({ roomId }).populate('userId', 'nickname avatar');
+        const chats = await Chat.find({ roomId }).sort({ createdAt: -1 }).limit(20).populate('userId', 'nickname avatar');
 
         // Filter out messages from blocked users
         const filteredChats = user ? chats.filter(chat => chat.userId && !user.blockedUsers.includes(chat.userId._id)) : chats;
 
-        res.json(filteredChats);
+        res.json(filteredChats.reverse()); // Reverse to get the oldest first
     } catch (err) {
         console.error('Error in getMessages:', err);
         res.status(500).json({ error: err.message });

@@ -65,7 +65,6 @@ exports.sendPrivateMessage = async (req, res) => {
     }
 };
 
-
 exports.getPrivateMessages = async (req, res) => {
     const userId = req.user.id;
 
@@ -102,4 +101,3 @@ exports.markAsRead = async (req, res) => {
         res.status(500).json({ error: 'Server error. Please try again later.' });
     }
 };
-
