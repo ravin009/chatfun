@@ -75,7 +75,11 @@ exports.sendPrivateMessage = async (req, res) => {
         }
 
         // Send message to RabbitMQ queue
-        channel.sendToQueue('private_messages', Buffer.from(JSON.stringify(privateMessage)));
+        if (channel) {
+            channel.sendToQueue('private_messages', Buffer.from(JSON.stringify(privateMessage)));
+        } else {
+            console.error('RabbitMQ channel is not available');
+        }
 
         res.status(201).json(privateMessage);
     } catch (err) {

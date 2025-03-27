@@ -79,7 +79,11 @@ exports.sendMessage = async (req, res) => {
         await sender.save();
 
         // Send message to RabbitMQ queue
-        channel.sendToQueue('chat_messages', Buffer.from(JSON.stringify(chat)));
+        if (channel) {
+            channel.sendToQueue('chat_messages', Buffer.from(JSON.stringify(chat)));
+        } else {
+            console.error('RabbitMQ channel is not available');
+        }
 
         res.status(201).json(chat);
     } catch (err) {
