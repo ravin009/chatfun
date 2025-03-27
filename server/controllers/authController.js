@@ -1,6 +1,3 @@
-const overrideConsole = require('../utils/consoleOverride');
-overrideConsole();
-
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -145,5 +142,4 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ error: 'Server error. Please try again later.' });
     }
 };
-
 

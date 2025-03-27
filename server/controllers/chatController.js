@@ -1,9 +1,7 @@
-const overrideConsole = require('../utils/consoleOverride');
-overrideConsole();
-
 const Chat = require('../models/Chat');
 const User = require('../models/User');
 const Room = require('../models/Room');
+const amqp = require('amqplib/callback_api');
 
 const MAX_MESSAGES = 70;
 
@@ -16,6 +14,22 @@ const limitMessagesInRoom = async (roomId) => {
         }
     }
 };
+
+// RabbitMQ setup
+let channel;
+amqp.connect(process.env.RABBITMQ_URL, (err, connection) => {
+    if (err) {
+        throw err;
+    }
+    connection.createChannel((err, ch) => {
+        if (err) {
+            throw err;
+        }
+        channel = ch;
+        console.log('Connected to RabbitMQ');
+        channel.assertQueue('chat_messages', { durable: false });
+    });
+});
 
 exports.sendMessage = async (req, res) => {
     const { roomId, message, userId, nickname, avatar } = req.body;
@@ -64,6 +78,9 @@ exports.sendMessage = async (req, res) => {
         sender.chatMessageCount = (sender.chatMessageCount || 0) + 1;
         await sender.save();
 
+        // Send message to RabbitMQ queue
+        channel.sendToQueue('chat_messages', Buffer.from(JSON.stringify(chat)));
+
         res.status(201).json(chat);
     } catch (err) {
         console.error('Error in sendMessage:', err);
@@ -75,12 +92,12 @@ exports.getMessages = async (req, res) => {
     const { roomId } = req.params;
     try {
         const user = await User.findById(req.user.id);
-        const chats = await Chat.find({ roomId }).sort({ createdAt: -1 }).limit(20).populate('userId', 'nickname avatar');
+        const chats = await Chat.find({ roomId }).populate('userId', 'nickname avatar');
 
         // Filter out messages from blocked users
         const filteredChats = user ? chats.filter(chat => chat.userId && !user.blockedUsers.includes(chat.userId._id)) : chats;
 
-        res.json(filteredChats.reverse()); // Reverse to get the oldest first
+        res.json(filteredChats);
     } catch (err) {
         console.error('Error in getMessages:', err);
         res.status(500).json({ error: err.message });

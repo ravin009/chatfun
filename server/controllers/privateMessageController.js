@@ -1,8 +1,24 @@
-const overrideConsole = require('../utils/consoleOverride');
-overrideConsole();
-
 const PrivateMessage = require('../models/PrivateMessage');
 const User = require('../models/User');
+const amqp = require('amqplib/callback_api');
+
+const MAX_MESSAGES = 70;
+
+// RabbitMQ setup
+let channel;
+amqp.connect(process.env.RABBITMQ_URL, (err, connection) => {
+    if (err) {
+        throw err;
+    }
+    connection.createChannel((err, ch) => {
+        if (err) {
+            throw err;
+        }
+        channel = ch;
+        console.log('Connected to RabbitMQ');
+        channel.assertQueue('private_messages', { durable: false });
+    });
+});
 
 exports.sendPrivateMessage = async (req, res) => {
     const { recipientId, message } = req.body;
@@ -57,6 +73,9 @@ exports.sendPrivateMessage = async (req, res) => {
                 await PrivateMessage.deleteOne({ _id: oldestMessage._id });
             }
         }
+
+        // Send message to RabbitMQ queue
+        channel.sendToQueue('private_messages', Buffer.from(JSON.stringify(privateMessage)));
 
         res.status(201).json(privateMessage);
     } catch (err) {

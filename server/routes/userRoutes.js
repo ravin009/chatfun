@@ -1,7 +1,3 @@
-const overrideConsole = require('../utils/consoleOverride');
-overrideConsole();
-
-
 const express = require('express');
 const { updateProfile, uploadProfileAssets, incrementRating, addFriend, removeFriend, blockUser, unblockUser, updateProfilePicture, updateAvatar, getUserProfile, updateColors, updateEmail, changePassword, updatePrivacySetting, banUser, unbanUser } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware'); // Import the protect middleware

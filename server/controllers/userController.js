@@ -1,6 +1,3 @@
-const overrideConsole = require('../utils/consoleOverride');
-overrideConsole();
-
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');

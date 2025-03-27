@@ -1,6 +1,3 @@
-const overrideConsole = require('../utils/consoleOverride');
-overrideConsole();
-
 const DefaultRoom = require('../models/DefaultRoom');
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
