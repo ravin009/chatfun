@@ -9,20 +9,18 @@ services:
       - EMAIL_USER=kingravin001@gmail.com
       - EMAIL_PASS=lwbg biio gjpu fcfp
       - REDIS_URL=redis://red-cvgr815umphs73cv5hl0:6379
-      - RABBITMQ_URL=amqp://chatfun@ravin72757275:Leela@Shiv72757275@rabbitmq:5672
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
     depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      - rabbitmq
+      - redis
     networks:
       - server_default
 
   rabbitmq:
     image: rabbitmq:management
     environment:
-      - RABBITMQ_DEFAULT_USER=chatfun@ravin72757275
-      - RABBITMQ_DEFAULT_PASS=Leela@Shiv72757275
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
     ports:
       - "5672:5672"
       - "15672:15672"

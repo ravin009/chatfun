@@ -51,6 +51,8 @@ redisClient.on('error', (err) => {
 
 redisClient.connect().then(() => {
     console.log('Connected to Redis');
+}).catch((err) => {
+    console.error('Failed to connect to Redis:', err);
 });
 
 // RabbitMQ setup with retry logic
@@ -62,16 +64,17 @@ const connectToRabbitMQ = (retries = 5) => {
                 console.log(`Retrying to connect to RabbitMQ (${retries} retries left)...`);
                 setTimeout(() => connectToRabbitMQ(retries - 1), 5000);
             } else {
-                throw err;
+                console.error('Exhausted all retries to connect to RabbitMQ');
             }
         } else {
             connection.createChannel((err, ch) => {
                 if (err) {
-                    throw err;
+                    console.error('Failed to create RabbitMQ channel:', err);
+                } else {
+                    channel = ch;
+                    console.log('Connected to RabbitMQ');
+                    channel.assertQueue('chat_messages', { durable: false });
                 }
-                channel = ch;
-                console.log('Connected to RabbitMQ');
-                channel.assertQueue('chat_messages', { durable: false });
             });
         }
     });
