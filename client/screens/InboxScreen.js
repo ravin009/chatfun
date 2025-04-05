@@ -5,6 +5,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Avatar from '../components/Avatar';
 import LottieView from 'lottie-react-native';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 const emojiMap = {
     ':p1:': require('../assets/animations/emoji42.json'),
@@ -19,14 +20,23 @@ const emojiMap = {
     ':p10:': require('../assets/animations/emoji51.json'),
 };
 
+const PAGE_SIZE = 10; // Number of conversations to load per page
+
 const InboxScreen = ({ navigation }) => {
     const { user, getPrivateMessages, markAsRead, setUnreadMessages, unreadMessages } = useContext(AuthContext);
     const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
 
     useEffect(() => {
         const fetchConversations = async () => {
             try {
+                const cachedConversations = await AsyncStorage.getItem('conversations');
+                if (cachedConversations) {
+                    setConversations(JSON.parse(cachedConversations));
+                }
+
                 const messages = await getPrivateMessages();
                 const uniqueConversations = {};
 
@@ -39,15 +49,13 @@ const InboxScreen = ({ navigation }) => {
 
                 const sortedConversations = Object.values(uniqueConversations).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-                // Fetch user details for each conversation
-                const updatedConversations = await Promise.all(
-                    sortedConversations.map(async (conversation) => {
-                        const userRes = await axios.get(`https://chatfun-backend.onrender.com/api/user/${conversation.otherUser._id}`);
-                        return { ...conversation, otherUser: userRes.data };
-                    })
-                );
+                // Fetch user details for the first page
+                const initialConversations = await fetchUserDetails(sortedConversations.slice(0, PAGE_SIZE));
+                setConversations(initialConversations);
+                setHasMore(sortedConversations.length > PAGE_SIZE);
 
-                setConversations(updatedConversations);
+                // Cache the conversations
+                await AsyncStorage.setItem('conversations', JSON.stringify(initialConversations));
             } catch (err) {
                 console.error('Error fetching conversations:', err.response ? err.response.data : err.message);
             } finally {
@@ -57,6 +65,46 @@ const InboxScreen = ({ navigation }) => {
 
         fetchConversations();
     }, [user]);
+
+    const fetchUserDetails = async (conversations) => {
+        return await Promise.all(
+            conversations.map(async (conversation) => {
+                const userRes = await axios.get(`https://chatfun-backend.onrender.com/api/user/${conversation.otherUser._id}`);
+                return { ...conversation, otherUser: userRes.data };
+            })
+        );
+    };
+
+    const loadMoreConversations = async () => {
+        if (!hasMore || loading) return;
+
+        setLoading(true);
+        try {
+            const messages = await getPrivateMessages();
+            const uniqueConversations = {};
+
+            for (const message of messages) {
+                const otherUser = message.senderId._id === user._id ? message.recipientId : message.senderId;
+                if (!uniqueConversations[otherUser._id] || new Date(message.createdAt) > new Date(uniqueConversations[otherUser._id].createdAt)) {
+                    uniqueConversations[otherUser._id] = { ...message, otherUser };
+                }
+            }
+
+            const sortedConversations = Object.values(uniqueConversations).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const nextPageConversations = await fetchUserDetails(sortedConversations.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE));
+
+            setConversations((prevConversations) => [...prevConversations, ...nextPageConversations]);
+            setPage((prevPage) => prevPage + 1);
+            setHasMore(sortedConversations.length > (page + 1) * PAGE_SIZE);
+
+            // Cache the updated conversations
+            await AsyncStorage.setItem('conversations', JSON.stringify([...conversations, ...nextPageConversations]));
+        } catch (err) {
+            console.error('Error loading more conversations:', err.response ? err.response.data : err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleConversationPress = async (otherUserId) => {
         try {
@@ -124,8 +172,8 @@ const InboxScreen = ({ navigation }) => {
     return (
         <View style={styles.outerContainer}>
             <View style={styles.innerContainer}>
-                {loading ? (
-                    <ActivityIndicator size="large" color="#007bff" />
+                {loading && page === 1 ? (
+                    <SkeletonLoader />
                 ) : (
                     <FlatList
                         data={memoizedConversations}
@@ -136,6 +184,9 @@ const InboxScreen = ({ navigation }) => {
                         maxToRenderPerBatch={10}
                         windowSize={21}
                         showsVerticalScrollIndicator={false}
+                        onEndReached={loadMoreConversations}
+                        onEndReachedThreshold={0.5}
+                        ListFooterComponent={loading && hasMore ? <ActivityIndicator size="small" color="#007bff" /> : null}
                     />
                 )}
             </View>

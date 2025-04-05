@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Modal, Alert, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Modal, Alert, Dimensions, Animated } from 'react-native';
 import io from 'socket.io-client';
 import AuthContext from '../context/AuthContext';
 import axios from 'axios';
@@ -23,7 +23,47 @@ const emojiMap = {
     ':p8:': require('../assets/animations/emoji49.json'),
     ':p9:': require('../assets/animations/emoji50.json'),
     ':p10:': require('../assets/animations/emoji51.json'),
-
+    ':g:': require('../assets/animations/emoji1.json'),
+    ':m:': require('../assets/animations/emoji2.json'),
+    ':j:': require('../assets/animations/emoji3.json'),
+    ':b:': require('../assets/animations/emoji4.json'),
+    ':c:': require('../assets/animations/emoji5.json'),
+    ':d:': require('../assets/animations/emoji6.json'),
+    ':e:': require('../assets/animations/emoji7.json'),
+    ':f:': require('../assets/animations/emoji8.json'),
+    ':g1:': require('../assets/animations/emoji9.json'),
+    ':h:': require('../assets/animations/emoji10.json'),
+    ':i:': require('../assets/animations/emoji11.json'),
+    ':j1:': require('../assets/animations/emoji12.json'),
+    ':k:': require('../assets/animations/emoji13.json'),
+    ':l:': require('../assets/animations/emoji14.json'),
+    ':m1:': require('../assets/animations/emoji15.json'),
+    ':n:': require('../assets/animations/emoji16.json'),
+    ':o:': require('../assets/animations/emoji17.json'),
+    ':p:': require('../assets/animations/emoji18.json'),
+    ':q:': require('../assets/animations/emoji19.json'),
+    ':r:': require('../assets/animations/emoji20.json'),
+    ':s:': require('../assets/animations/emoji21.json'),
+    ':t:': require('../assets/animations/emoji22.json'),
+    ':u:': require('../assets/animations/emoji23.json'),
+    ':v:': require('../assets/animations/emoji24.json'),
+    ':w:': require('../assets/animations/emoji25.json'),
+    ':x:': require('../assets/animations/emoji26.json'),
+    ':y:': require('../assets/animations/emoji27.json'),
+    ':z:': require('../assets/animations/emoji28.json'),
+    ':am1:': require('../assets/animations/emoji29.json'),
+    ':am2:': require('../assets/animations/emoji30.json'),
+    ':am3:': require('../assets/animations/emoji31.json'),
+    ':am4:': require('../assets/animations/emoji32.json'),
+    ':am5:': require('../assets/animations/emoji33.json'),
+    ':am6:': require('../assets/animations/emoji34.json'),
+    ':am7:': require('../assets/animations/emoji35.json'),
+    ':am8:': require('../assets/animations/emoji36.json'),
+    ':am9:': require('../assets/animations/emoji37.json'),
+    ':am10:': require('../assets/animations/emoji38.json'),
+    ':am11:': require('../assets/animations/emoji39.json'),
+    ':am12:': require('../assets/animations/emoji40.json'),
+    ':am13:': require('../assets/animations/emoji41.json'),
     // Add more short codes and corresponding Lottie JSON files here
 };
 
@@ -35,7 +75,6 @@ const PrivateChatScreen = ({ route, navigation }) => {
     const { user, sendPrivateMessage, getPrivateMessages, markAsRead, setUnreadMessages, setCurrentPrivateChatUser, currentPrivateChatUser, addFriend, removeFriend, blockUser, unblockUser, isFriend, isBlocked } = useContext(AuthContext);
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState('');
-    const [loading, setLoading] = useState(false);
     const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
     const [userOptionsVisible, setUserOptionsVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
@@ -46,6 +85,7 @@ const PrivateChatScreen = ({ route, navigation }) => {
     const [privateMessageRecipientNickname, setPrivateMessageRecipientNickname] = useState(null);
     const socket = useRef(null);
     const scrollViewRef = useRef();
+    const sendButtonScale = useRef(new Animated.Value(1)).current;
 
     useFocusEffect(
         React.useCallback(() => {
@@ -58,7 +98,6 @@ const PrivateChatScreen = ({ route, navigation }) => {
         socket.current = io('https://chatfun-backend.onrender.com');
 
         const fetchMessages = async () => {
-            setLoading(true);
             try {
                 const token = await AsyncStorage.getItem('token');
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -80,8 +119,6 @@ const PrivateChatScreen = ({ route, navigation }) => {
                 setUnreadMessages(prevUnread => prevUnread.filter(msg => msg.senderId._id !== userId));
             } catch (err) {
                 console.error('Error fetching private messages:', err.response ? err.response.data : err.message);
-            } finally {
-                setLoading(false);
             }
         };
 
@@ -118,10 +155,26 @@ const PrivateChatScreen = ({ route, navigation }) => {
 
     const handleSendMessage = async () => {
         if (message.trim()) {
+            const messageToSend = message; // Store the message to send
+            setMessage(''); // Clear the input box immediately
+
+            // Animate the send button
+            Animated.sequence([
+                Animated.timing(sendButtonScale, {
+                    toValue: 0.9,
+                    duration: 50,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(sendButtonScale, {
+                    toValue: 1,
+                    duration: 50,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+
             try {
-                const newMessage = await sendPrivateMessage(userId, message);
+                const newMessage = await sendPrivateMessage(userId, messageToSend);
                 socket.current.emit('privateMessage', newMessage);
-                setMessage('');
                 if (scrollViewRef.current) {
                     scrollViewRef.current.scrollToEnd({ animated: true });
                 }
@@ -254,7 +307,6 @@ const PrivateChatScreen = ({ route, navigation }) => {
             keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0} // Adjust the offset as needed
         >
             <View style={styles.container}>
-                {loading && <ActivityIndicator size="large" color="#007bff" />}
                 <ScrollView
                     ref={scrollViewRef}
                     contentContainerStyle={styles.messageList}
@@ -286,9 +338,11 @@ const PrivateChatScreen = ({ route, navigation }) => {
                         value={message}
                         onChangeText={setMessage}
                     />
-                    <TouchableOpacity style={styles.iconButton} onPress={handleSendMessage}>
-                        <FontAwesome name="send" size={24} color="white" />
-                    </TouchableOpacity>
+                    <Animated.View style={{ transform: [{ scale: sendButtonScale }] }}>
+                        <TouchableOpacity style={styles.iconButton} onPress={handleSendMessage}>
+                            <FontAwesome name="send" size={24} color="white" />
+                        </TouchableOpacity>
+                    </Animated.View>
                     <TouchableOpacity style={styles.iconButton} onPress={() => setEmojiPickerVisible(!emojiPickerVisible)}>
                         <FontAwesome name="smile-o" size={24} color="white" />
                     </TouchableOpacity>
@@ -356,21 +410,23 @@ const PrivateChatScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#8c6eb8',
+        backgroundColor: '#f0f2f5',
     },
     messageList: {
         flexGrow: 1,
         justifyContent: 'flex-end',
+        paddingHorizontal: 10,
+        paddingVertical: 20,
     },
     myMessageContainer: {
         flexDirection: 'row',
-        alignItems: 'flex-start', // Align items to the start
+        alignItems: 'flex-start',
         padding: 10,
-        backgroundColor: '#e1ffc7',
+        backgroundColor: '#d1e7dd',
         alignSelf: 'flex-end',
-        borderRadius: 10,
-        margin: 5,
-        maxWidth: '80%', // Ensure the message does not exceed 80% of the screen width
+        borderRadius: 20,
+        marginVertical: 5,
+        maxWidth: '80%',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
@@ -379,13 +435,13 @@ const styles = StyleSheet.create({
     },
     theirMessageContainer: {
         flexDirection: 'row',
-        alignItems: 'flex-start', // Align items to the start
+        alignItems: 'flex-start',
         padding: 10,
-        backgroundColor: '#fff',
+        backgroundColor: '#ffffff',
         alignSelf: 'flex-start',
-        borderRadius: 10,
-        margin: 5,
-        maxWidth: '80%', // Ensure the message does not exceed 80% of the screen width
+        borderRadius: 20,
+        marginVertical: 5,
+        maxWidth: '80%',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
@@ -394,11 +450,11 @@ const styles = StyleSheet.create({
     },
     messageContent: {
         marginLeft: 10,
-        flex: 1, // Allow the message content to take up the remaining space
+        flex: 1,
     },
     nickname: {
         fontWeight: 'bold',
-        color: '#007bff', // Set nickname color to blue
+        color: '#007bff',
     },
     messageTextContainer: {
         flexDirection: 'row',
@@ -406,25 +462,26 @@ const styles = StyleSheet.create({
     },
     messageText: {
         fontSize: 16,
-        flexWrap: 'wrap', // Ensure the text wraps to the next line if it's too long
-        color: '#333', // Set message text color to dark gray
+        flexWrap: 'wrap',
+        color: '#333',
     },
     textPart: {
         fontSize: 16,
     },
     emoji: {
-        width: 30, // Adjust size as needed
-        height: 30, // Adjust size as needed
-        marginBottom: -5, // Adjust to align with text
+        width: 30,
+        height: 30,
+        marginBottom: -5,
     },
     emojiLarge: {
-        width: 40, // Increase size for larger emojis
-        height: 40, // Increase size for larger emojis
-        marginBottom: -5, // Adjust to align with text
+        width: 40,
+        height: 40,
+        marginBottom: -5,
     },
     messageTime: {
         fontSize: 12,
         color: '#666',
+        marginTop: 5,
     },
     inputContainer: {
         flexDirection: 'row',
@@ -451,12 +508,12 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     emojiPickerContainer: {
-        width: width, // Full width
-        height: 120, // Adjust height as needed
-        backgroundColor: 'rgba(0, 0, 0, 0.8)', // Dark black transparent background
+        width: width,
+        height: 120,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
         padding: 10,
         position: 'absolute',
-        bottom: 60, // Position above the input container
+        bottom: 60,
         justifyContent: 'center',
         alignItems: 'center',
     },

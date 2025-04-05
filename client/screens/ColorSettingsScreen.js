@@ -1,12 +1,17 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ColorWheel } from 'react-native-color-wheel';
+import { FontAwesome } from '@expo/vector-icons';
 import AuthContext from '../context/AuthContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FontAwesome } from '@expo/vector-icons';
 import CustomAlert from '../components/CustomAlert'; // Import CustomAlert
+
+const colorPalette = [
+    '#FF5733', '#06A947', '#52595D', '#7F5A58', '#A133FF', '#33FFF5', '#FF8C33', '#8CFF33', '#338CFF', '#FF338C',
+    '#9E4638', '#CECECE', '#FF5733', '#737CA1', '#E55451', '#FF33A1', '#A133FF', '#33FFF5', '#FF8C33', '#14A3C7',
+    '#008B8B', '#FFA600', '#808000', '#33FF8C', '#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#F67280', '#33FFF5'
+];
 
 const ColorSettingsScreen = ({ navigation }) => {
     const { user, setUser } = useContext(AuthContext);
@@ -93,11 +98,6 @@ const ColorSettingsScreen = ({ navigation }) => {
             <Text style={styles.title}>Color Settings</Text>
             <View style={styles.colorPickerContainer}>
                 <Text style={styles.label}>Nickname Color</Text>
-                <ColorWheel
-                    initialColor={nicknameColor}
-                    onColorChangeComplete={color => setNicknameColor(color)}
-                    style={styles.colorPicker}
-                />
                 <TextInput
                     style={[styles.input, nicknameColorError ? styles.errorInput : null]}
                     placeholder="Hex Code"
@@ -106,14 +106,18 @@ const ColorSettingsScreen = ({ navigation }) => {
                     onChangeText={setNicknameColor}
                 />
                 {nicknameColorError ? <Text style={styles.errorText}>{nicknameColorError}</Text> : null}
+                <View style={styles.paletteContainer}>
+                    {colorPalette.map((color, index) => (
+                        <TouchableOpacity
+                            key={index}
+                            style={[styles.colorBox, { backgroundColor: color }]}
+                            onPress={() => setNicknameColor(color)}
+                        />
+                    ))}
+                </View>
             </View>
             <View style={styles.colorPickerContainer}>
                 <Text style={styles.label}>Chat Text Color</Text>
-                <ColorWheel
-                    initialColor={chatTextColor}
-                    onColorChangeComplete={color => setChatTextColor(color)}
-                    style={styles.colorPicker}
-                />
                 <TextInput
                     style={[styles.input, chatTextColorError ? styles.errorInput : null]}
                     placeholder="Hex Code"
@@ -122,6 +126,15 @@ const ColorSettingsScreen = ({ navigation }) => {
                     onChangeText={setChatTextColor}
                 />
                 {chatTextColorError ? <Text style={styles.errorText}>{chatTextColorError}</Text> : null}
+                <View style={styles.paletteContainer}>
+                    {colorPalette.map((color, index) => (
+                        <TouchableOpacity
+                            key={index}
+                            style={[styles.colorBox, { backgroundColor: color }]}
+                            onPress={() => setChatTextColor(color)}
+                        />
+                    ))}
+                </View>
             </View>
             <TouchableOpacity style={styles.button} onPress={handleSaveColors}>
                 <LinearGradient
@@ -170,11 +183,6 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         color: '#fff',
     },
-    colorPicker: {
-        width: '100%',
-        height: 200,
-        marginBottom: 10,
-    },
     input: {
         width: '80%',
         padding: 10,
@@ -190,6 +198,18 @@ const styles = StyleSheet.create({
     errorText: {
         color: 'red',
         marginTop: 5,
+    },
+    paletteContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        marginTop: 10,
+    },
+    colorBox: {
+        width: 30,
+        height: 30,
+        margin: 5,
+        borderRadius: 5,
     },
     button: {
         width: '80%',

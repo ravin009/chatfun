@@ -15,6 +15,30 @@ const emojiMap = {
     ':p8:': require('../assets/animations/emoji49.json'),
     ':p9:': require('../assets/animations/emoji50.json'),
     ':p10:': require('../assets/animations/emoji51.json'),
+
+     // new emojis
+     ':a1:': require('../assets/animations/emoji52.json'),
+     ':a2:': require('../assets/animations/emoji53.json'),
+     ':a3:': require('../assets/animations/emoji54.json'),
+     ':a4:': require('../assets/animations/emoji55.json'),
+     ':a5:': require('../assets/animations/emoji56.json'),
+     ':a6:': require('../assets/animations/emoji57.json'),
+     ':a7:': require('../assets/animations/emoji58.json'),
+     ':a8:': require('../assets/animations/emoji59.json'),
+     ':a10:': require('../assets/animations/emoji61.json'),
+     ':b1:': require('../assets/animations/emoji62.json'),
+     ':b2:': require('../assets/animations/emoji63.json'),
+     ':b3:': require('../assets/animations/emoji64.json'),
+     ':b4:': require('../assets/animations/emoji65.json'),
+     ':b5:': require('../assets/animations/emoji66.json'),
+     ':b6:': require('../assets/animations/emoji67.json'),
+     ':b7:': require('../assets/animations/emoji68.json'),
+     ':b8:': require('../assets/animations/emoji69.json'),
+     ':b9:': require('../assets/animations/emoji70.json'),
+     ':b10:': require('../assets/animations/emoji71.json'),
+     // new emojis till this line
+
+
     ':g:': require('../assets/animations/emoji1.json'),
     ':m:': require('../assets/animations/emoji2.json'),
     ':j:': require('../assets/animations/emoji3.json'),
@@ -93,53 +117,53 @@ const PrivateMessageNotification = ({ message, onClose, onReply, onViewProfile }
     };
 
     // Suppress notification if the current private chat user matches the sender or recipient
-    if (currentPrivateChatUser && (currentPrivateChatUser === message.senderId._id || currentPrivateChatUser === message.recipientId._id)) {
-        return null;
-    }
+if (currentPrivateChatUser && (currentPrivateChatUser === message.senderId._id || currentPrivateChatUser === message.recipientId._id)) {
+    return null;
+}
 
-    return (
-        <Modal
-            visible={true}
-            transparent={true}
-            animationType="none"
-            onRequestClose={onClose}
-        >
-            <View style={styles.modalContainer}>
-                <Animated.View
-                    {...panResponder.panHandlers}
-                    style={[styles.notificationContainer, { transform: [{ translateX: pan.x }, { translateY: pan.y }], backgroundColor }]}
-                >
-                    <View style={styles.header}>
-                        <Text style={styles.title}>{message.senderId.nickname}</Text>
-                        <TouchableOpacity onPress={onClose}>
-                            <FontAwesome name="times" size={24} color="white" />
-                        </TouchableOpacity>
-                    </View>
-                    <View style={styles.messageTextContainer}>
-                        {message?.message?.endsWith('.jpg') || message?.message?.endsWith('.jpeg') || message?.message?.endsWith('.png') ? (
-                            <Text style={styles.imageLink}>You have received an image</Text>
-                        ) : (
-                            renderMessageContent(message?.message || '')
-                        )}
-                    </View>
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity style={styles.iconButton} onPress={() => {
-                            console.log('Reply button clicked');
-                            console.log('Sender ID:', message.senderId?._id);
-                            console.log('Sender Gender:', message.senderId?.gender);
-                            console.log('Sender Nickname:', message.senderId?.nickname);
-                            onReply(message.senderId?._id, message.senderId?.gender, message.senderId?.nickname);
-                        }}>
-                            <Text style={styles.buttonText}>Reply</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.iconButton} onPress={onViewProfile}>
-                            <Text style={styles.buttonText}>About User</Text>
-                        </TouchableOpacity>
-                    </View>
-                </Animated.View>
-            </View>
-        </Modal>
-    );
+return (
+    <Modal
+        visible={true}
+        transparent={true}
+        animationType="none"
+        onRequestClose={onClose}
+    >
+        <View style={styles.modalContainer}>
+            <Animated.View
+                {...panResponder.panHandlers}
+                style={[styles.notificationContainer, { transform: [{ translateX: pan.x }, { translateY: pan.y }], backgroundColor }]}
+            >
+                <View style={styles.header}>
+                    <Text style={styles.title}>{message.senderId.nickname}</Text>
+                    <TouchableOpacity onPress={onClose}>
+                        <FontAwesome name="times" size={24} color="white" />
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.messageTextContainer}>
+                    {message?.message?.endsWith('.jpg') || message?.message?.endsWith('.jpeg') || message?.message?.endsWith('.png') ? (
+                        <Text style={styles.imageLink}>You have received an image</Text>
+                    ) : (
+                        renderMessageContent(message?.message || '')
+                    )}
+                </View>
+                <View style={styles.buttonContainer}>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => {
+                        console.log('Reply button clicked');
+                        console.log('Sender ID:', message.senderId?._id);
+                        console.log('Sender Gender:', message.senderId?.gender);
+                        console.log('Sender Nickname:', message.senderId?.nickname);
+                        onReply(message.senderId?._id, message.senderId?.gender, message.senderId?.nickname);
+                    }}>
+                        <Text style={styles.buttonText}>Reply</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton} onPress={onViewProfile}>
+                        <Text style={styles.buttonText}>About User</Text>
+                    </TouchableOpacity>
+                </View>
+            </Animated.View>
+        </View>
+    </Modal>
+);
 };
 
 const styles = StyleSheet.create({

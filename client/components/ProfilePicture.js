@@ -7,8 +7,7 @@ const ProfilePicture = ({ profilePicture, setProfilePicture }) => {
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
-            allowsEditing: true,
-            aspect: [4, 3],
+            allowsEditing: false,
             quality: 1,
         });
 
@@ -20,8 +19,7 @@ const ProfilePicture = ({ profilePicture, setProfilePicture }) => {
 
     const takePhoto = async () => {
         let result = await ImagePicker.launchCameraAsync({
-            allowsEditing: true,
-            aspect: [4, 3],
+            allowsEditing: false,
             quality: 1,
         });
 

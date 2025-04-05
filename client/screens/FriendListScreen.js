@@ -65,20 +65,15 @@ const FriendListScreen = ({ navigation }) => {
             <ScrollView contentContainerStyle={styles.scrollViewContent} showsVerticalScrollIndicator={false}>
                 {filteredFriends.length > 0 ? (
                     filteredFriends.map(friend => (
-                        <View key={friend._id}>
+                        <View key={friend._id} style={styles.friendItemContainer}>
                             <View style={styles.friendItem}>
-                                <View style={styles.avatarContainer}>
+                                <TouchableOpacity style={styles.avatarContainer} onPress={() => setSelectedFriend(selectedFriend === friend._id ? null : friend._id)}>
                                     <Avatar avatarPath={friend.avatar} style={styles.avatar} />
                                     <Text style={styles.friendNickname}>{friend.nickname}</Text>
-                                </View>
-                                <View style={styles.iconContainer}>
-                                    <TouchableOpacity onPress={() => setSelectedFriend(selectedFriend === friend._id ? null : friend._id)}>
-                                        <FontAwesome name={selectedFriend === friend._id ? "chevron-up" : "chevron-down"} size={16} color="white" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.removeButton} onPress={() => removeFriend(friend._id)}>
-                                        <FontAwesome name="times" size={16} color="white" />
-                                    </TouchableOpacity>
-                                </View>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.removeButton} onPress={() => removeFriend(friend._id)}>
+                                    <FontAwesome name="times" size={16} color="white" />
+                                </TouchableOpacity>
                             </View>
                             {selectedFriend === friend._id && (
                                 <View style={styles.optionsContainer}>
@@ -157,13 +152,16 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         width: '100%',
     },
+    friendItemContainer: {
+        width: '100%',
+        marginBottom: 10,
+    },
     friendItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         width: '100%',
         padding: 15,
-        marginVertical: 10,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         borderRadius: 10,
         shadowColor: '#000',
@@ -176,23 +174,22 @@ const styles = StyleSheet.create({
     avatarContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1,
     },
     friendNickname: {
         marginLeft: 10,
         fontSize: 16,
         color: '#fff',
     },
-    iconContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
     removeButton: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
         backgroundColor: '#ff4d4d',
         padding: 5, // Reduce padding to make the button smaller
         borderRadius: 5,
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: 10, // Add margin to the left of the remove button
     },
     emptyListText: {
         fontSize: 16,
@@ -205,7 +202,6 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 10,
         marginTop: 10,
-        marginBottom: 10,
     },
     optionButton: {
         flexDirection: 'row',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef, useCallback, useMemo } from 'react';
-import { View, FlatList, TouchableOpacity, Animated, PanResponder, Modal, Text, BackHandler, Dimensions } from 'react-native';
+import { View, FlatList, TouchableOpacity, Animated, PanResponder, Modal, Text, BackHandler, Dimensions, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import io from 'socket.io-client';
 import AuthContext from '../context/AuthContext';
@@ -18,7 +18,7 @@ import PrivateMessageNotification from '../components/PrivateMessageNotification
 import RoomSettings from '../components/RoomSettings';
 import TopNavigationBar from '../components/TopNavigationBar';
 import MenuScreen from './MenuScreen';
-import useBackButtonHandler from '../hooks/useBackButtonHandler';
+import ExitConfirmationBox from '../components/ExitConfirmationBox'; // Import the new component
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,7 +27,7 @@ const ChatScreen = ({ navigation, route }) => {
     const [messages, setMessages] = useState([]);
     const { user, setUser, logout, addFriend, removeFriend, blockUser, unblockUser, isFriend, isBlocked, sendPrivateMessage, getPrivateMessages, markAsRead, unreadMessages, setUnreadMessages, isAdmin, setAlertTitle, setAlertMessage, setAlertType, setAlertVisible, setAlertOnConfirm, setAlertOnCancel } = useContext(AuthContext);
     const { rooms, setReadOnly, removeReadOnly } = useContext(RoomContext);
-    const socket = useRef(io('https://chatfun-backend.onrender.com')).current;
+    const socket = useRef(null);
     const [userOptionsVisible, setUserOptionsVisible] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [selectedUserProfile, setSelectedUserProfile] = useState(null); // Add this line
@@ -47,29 +47,9 @@ const ChatScreen = ({ navigation, route }) => {
     const menuPan = useState(new Animated.ValueXY({ x: width, y: 0 }))[0];
     const flatListRef = useRef();
     const [defaultRoomId, setDefaultRoomId] = useState(null);
+    const [exitConfirmationVisible, setExitConfirmationVisible] = useState(false); // Add this line
 
     const room = rooms.find(r => r.roomId === roomId);
-
-    useFocusEffect(
-        useCallback(() => {
-            const backAction = () => {
-                setAlertTitle("Hold on!");
-                setAlertMessage("Do you really want to exit the app?");
-                setAlertType("exit");
-                setAlertOnConfirm(() => BackHandler.exitApp);
-                setAlertOnCancel(() => setAlertVisible(false));
-                setAlertVisible(true);
-                return true;
-            };
-
-            const backHandler = BackHandler.addEventListener(
-                "hardwareBackPress",
-                backAction
-            );
-
-            return () => backHandler.remove();
-        }, [])
-    );
 
     useEffect(() => {
         const fetchDefaultRoomId = async () => {
@@ -89,63 +69,76 @@ const ChatScreen = ({ navigation, route }) => {
     }, []);
 
     useEffect(() => {
-        console.log('Setting up socket listeners');
-        socket.on('message', (message) => {
-            console.log('Received message:', message);
-            setMessages((prevMessages) => {
-                const newMessages = [...prevMessages, message];
-                console.log('Updated messages state:', newMessages);
-                return newMessages.length > 70 ? newMessages.slice(newMessages.length - 70) : newMessages;
+        if (user && (roomId || defaultRoomId)) {
+            socket.current = io('https://chatfun-backend.onrender.com');
+            socket.current.on('connect', () => {
+                console.log('Socket connected');
+                socket.current.emit('userOnline', user._id);
+                socket.current.emit('joinRoom', { userId: user._id, roomId: roomId || defaultRoomId });
             });
-            flatListRef.current.scrollToEnd({ animated: true });
-        });
 
-        socket.on('privateMessage', async (message) => {
-            console.log('Received private message:', message);
-            if (!message.senderId || typeof message.senderId === 'string') {
-                const senderRes = await axios.get(`https://chatfun-backend.onrender.com/api/user/${message.senderId}`);
-                message.senderId = senderRes.data;
-            }
-            setPrivateMessages((prevMessages) => [...prevMessages, message]);
-            if (message.recipientId === user._id && !message.isRead) {
-                setUnreadMessages((prevUnread) => [...prevUnread, message]);
-                setPrivateMessageNotification(message);
-            }
-        });
+            socket.current.on('message', (message) => {
+                console.log('Received message:', message);
+                setMessages((prevMessages) => {
+                    // Check if the message already exists in the state
+                    const messageExists = prevMessages.some(msg => msg._id === message._id);
+                    if (messageExists) {
+                        return prevMessages;
+                    }
+                    const newMessages = [...prevMessages, message];
+                    console.log('Updated messages state:', newMessages);
+                    return newMessages.length > 70 ? newMessages.slice(newMessages.length - 70) : newMessages;
+                });
+                flatListRef.current.scrollToEnd({ animated: true });
+            });
 
-        socket.on('privateMessageNotification', async (message) => {
-            console.log('Received private message notification:', message);
-            if (!message.senderId || typeof message.senderId === 'string') {
-                const senderRes = await axios.get(`https://chatfun-backend.onrender.com/api/user/${message.senderId}`);
-                message.senderId = senderRes.data;
-            }
-            if (message.recipientId === user._id && !message.isRead) {
-                setUnreadMessages((prevUnread) => [...prevUnread, message]);
-                setPrivateMessageNotification(message);
-            }
-        });
-
-        socket.on('userStatusChanged', (status) => {
-            console.log('User status changed:', status);
-            setMessages((prevMessages) => prevMessages.map((msg) => {
-                if (msg.userId._id === status.userId) {
-                    return { ...msg, userId: { ...msg.userId, isOnline: status.isOnline } };
+            socket.current.on('privateMessage', async (message) => {
+                console.log('Received private message:', message);
+                if (!message.senderId || typeof message.senderId === 'string') {
+                    const senderRes = await axios.get(`https://chatfun-backend.onrender.com/api/user/${message.senderId}`);
+                    message.senderId = senderRes.data;
                 }
-                return msg;
-            }));
-        });
+                setPrivateMessages((prevMessages) => [...prevMessages, message]);
+                if (message.recipientId === user._id && !message.isRead) {
+                    setUnreadMessages((prevUnread) => [...prevUnread, message]);
+                    setPrivateMessageNotification(message);
+                }
+            });
 
-        socket.on('userCounts', ({ roomId, maleCount, femaleCount }) => {
-            if (roomId === room.roomId) {
-                setUserCounts({ maleCount, femaleCount });
-            }
-        });
+            socket.current.on('privateMessageNotification', async (message) => {
+                console.log('Received private message notification:', message);
+                if (!message.senderId || typeof message.senderId === 'string') {
+                    const senderRes = await axios.get(`https://chatfun-backend.onrender.com/api/user/${message.senderId}`);
+                    message.senderId = senderRes.data;
+                }
+                if (message.recipientId === user._id && !message.isRead) {
+                    setUnreadMessages((prevUnread) => [...prevUnread, message]);
+                    setPrivateMessageNotification(message);
+                }
+            });
 
-        return () => {
-            console.log('Cleaning up socket listeners');
-            socket.disconnect();
-        };
-    }, [socket]);
+            socket.current.on('userStatusChanged', (status) => {
+                console.log('User status changed:', status);
+                setMessages((prevMessages) => prevMessages.map((msg) => {
+                    if (msg.userId._id === status.userId) {
+                        return { ...msg, userId: { ...msg.userId, isOnline: status.isOnline } };
+                    }
+                    return msg;
+                }));
+            });
+
+            socket.current.on('userCounts', ({ roomId, maleCount, femaleCount }) => {
+                if (roomId === room?.roomId) {
+                    setUserCounts({ maleCount, femaleCount });
+                }
+            });
+
+            return () => {
+                console.log('Cleaning up socket listeners');
+                socket.current.disconnect();
+            };
+        }
+    }, [user, roomId, defaultRoomId]);
 
     useEffect(() => {
         const fetchMessages = async () => {
@@ -173,22 +166,16 @@ const ChatScreen = ({ navigation, route }) => {
         }
     }, [user, roomId, defaultRoomId]);
 
-    useEffect(() => {
-        if (user && (roomId || defaultRoomId)) {
-            socket.emit('joinRoom', { userId: user._id, roomId: roomId || defaultRoomId });
-        }
-
-        return () => {
-            if (user && (roomId || defaultRoomId)) {
-                socket.emit('leaveRoom', { userId: user._id, roomId: roomId || defaultRoomId });
-            }
-        };
-    }, [user, roomId, defaultRoomId]);
-
     const sendMessage = useCallback(
         debounce(async (message) => {
             if (message.trim()) {
-                const newMessage = { roomId: roomId || defaultRoomId, message, userId: user._id, nickname: user.nickname, avatar: user.avatar, nicknameColor: user.nicknameColor, chatTextColor: user.chatTextColor };
+                const tempId = Date.now().toString(); // Temporary ID for the message
+                const newMessage = { _id: tempId, roomId: roomId || defaultRoomId, message, userId: user._id, nickname: user.nickname, avatar: user.avatar, nicknameColor: user.nicknameColor, chatTextColor: user.chatTextColor };
+
+                // Update the state immediately
+                setMessages((prevMessages) => [...prevMessages, newMessage]);
+                flatListRef.current.scrollToEnd({ animated: true });
+
                 try {
                     const roomRes = await axios.get(`https://chatfun-backend.onrender.com/api/rooms/${newMessage.roomId}`);
                     if (!roomRes.data) {
@@ -205,8 +192,10 @@ const ChatScreen = ({ navigation, route }) => {
 
                     const res = await axios.post('https://chatfun-backend.onrender.com/api/chat/send', newMessage);
                     console.log('Message sent:', res.data);
-                    socket.emit('message', res.data);
-                    flatListRef.current.scrollToEnd({ animated: true });
+                    socket.current.emit('message', res.data);
+
+                    // Replace the temporary message with the one from the server
+                    setMessages((prevMessages) => prevMessages.map(msg => msg._id === tempId ? res.data : msg));
 
                     // Increment the rating only once
                     const ratingRes = await axios.put('https://chatfun-backend.onrender.com/api/user/increment-rating');
@@ -281,7 +270,7 @@ const ChatScreen = ({ navigation, route }) => {
 
                     const imageMessage = { roomId: roomId || defaultRoomId, message: res.data.fileName, userId: user._id, nickname: user.nickname, avatar: user.avatar, nicknameColor: user.nicknameColor, chatTextColor: user.chatTextColor };
                     console.log('Image sent:', imageMessage);
-                    socket.emit('message', imageMessage);
+                    socket.current.emit('message', imageMessage);
                     flatListRef.current.scrollToEnd({ animated: true });
 
                     try {
@@ -314,7 +303,6 @@ const ChatScreen = ({ navigation, route }) => {
         }, 300),
         [user, socket, setUser, roomId, defaultRoomId]
     );
-
 
     useEffect(() => {
         console.log('Current user in ChatScreen:', user);
@@ -620,8 +608,8 @@ const ChatScreen = ({ navigation, route }) => {
             try {
                 const res = await sendPrivateMessage(privateMessageRecipient, message);
                 if (res) {
-                    if (socket) {
-                        socket.emit('privateMessage', res);
+                    if (socket.current) {
+                        socket.current.emit('privateMessage', res);
                         setAlertTitle('Message Sent');
                         setAlertMessage('Your message has been sent successfully.');
                         setAlertType('success');
@@ -705,6 +693,20 @@ const ChatScreen = ({ navigation, route }) => {
         setPrivateMessageBoxVisible(true);
         setProfileViewVisible(false);
     };
+
+    // Add the back button handler
+    useFocusEffect(
+        useCallback(() => {
+            const backAction = () => {
+                setExitConfirmationVisible(true);
+                return true;
+            };
+
+            const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+            return () => backHandler.remove();
+        }, [])
+    );
 
     return (
         <View style={[styles.container, { backgroundColor: room?.backgroundColor || '#17202a' }]} {...handleSwipeDown.panHandlers}>
@@ -839,6 +841,11 @@ const ChatScreen = ({ navigation, route }) => {
                         room={room}
                         visible={settingsVisible}
                         onClose={() => setSettingsVisible(false)}
+                    />
+                    <ExitConfirmationBox
+                        visible={exitConfirmationVisible}
+                        onConfirm={() => BackHandler.exitApp()}
+                        onCancel={() => setExitConfirmationVisible(false)}
                     />
                 </>
             )}

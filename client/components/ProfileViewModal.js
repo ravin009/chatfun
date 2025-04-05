@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView, Image, StyleSheet, Dimensions } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ScreenCapture from 'expo-screen-capture';
 import LottieView from 'lottie-react-native';
@@ -60,6 +60,8 @@ const emojiMap = {
     ':am12:': require('../assets/animations/emoji40.json'),
     ':am13:': require('../assets/animations/emoji41.json'),
 };
+
+const { width, height } = Dimensions.get('window');
 
 const ProfileViewModal = ({ visible, onClose, userId, onSendMessage }) => {
     const [profile, setProfile] = useState(null);
@@ -225,17 +227,11 @@ const ProfileViewModal = ({ visible, onClose, userId, onSendMessage }) => {
                     animationType="slide"
                     onRequestClose={handleCloseProfilePicture}
                 >
-                    <View style={styles.modalContainer}>
-                        <View style={styles.profileModalContent}>
-                            {profile && (
-                                <>
-                                    <Image source={{ uri: `https://chatfun-backend.onrender.com/${profile.profilePicture}` }} style={styles.profilePicture} />
-                                    <TouchableOpacity style={styles.closeButton} onPress={handleCloseProfilePicture}>
-                                        <Text style={styles.buttonText}>Close</Text>
-                                    </TouchableOpacity>
-                                </>
-                            )}
-                        </View>
+                    <View style={styles.fullscreenModalContainer}>
+                        <Image source={{ uri: `https://chatfun-backend.onrender.com/${profile.profilePicture}` }} style={styles.fullscreenImage} />
+                        <TouchableOpacity style={styles.fullscreenCloseButton} onPress={handleCloseProfilePicture}>
+                            <Text style={styles.buttonText}>Close</Text>
+                        </TouchableOpacity>
                     </View>
                 </Modal>
                 <Modal
@@ -244,17 +240,11 @@ const ProfileViewModal = ({ visible, onClose, userId, onSendMessage }) => {
                     animationType="slide"
                     onRequestClose={handleCloseAvatar}
                 >
-                    <View style={styles.modalContainer}>
-                        <View style={styles.profileModalContent}>
-                            {profile && (
-                                <>
-                                    <Image source={{ uri: `https://chatfun-backend.onrender.com/${profile.avatar}` }} style={styles.profilePicture} />
-                                    <TouchableOpacity style={styles.closeButton} onPress={handleCloseAvatar}>
-                                        <Text style={styles.buttonText}>Close</Text>
-                                    </TouchableOpacity>
-                                </>
-                            )}
-                        </View>
+                    <View style={styles.fullscreenModalContainer}>
+                        <Image source={{ uri: `https://chatfun-backend.onrender.com/${profile.avatar}` }} style={styles.fullscreenImage} />
+                        <TouchableOpacity style={styles.fullscreenCloseButton} onPress={handleCloseAvatar}>
+                            <Text style={styles.buttonText}>Close</Text>
+                        </TouchableOpacity>
                     </View>
                 </Modal>
                 <Modal
@@ -291,12 +281,13 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     profileModalContent: {
-        width: '90%',
+        width: width * 0.9, // Adjust the width to ensure proper centering
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         borderRadius: 10,
         padding: 20,
         alignItems: 'center',
-        maxHeight: '90%', // Increase the max height to 85%
+        maxHeight: '85%', // Increase the height of the modal
+        justifyContent: 'center', // Center the content vertically
     },
     profileAvatar: {
         width: 100,
@@ -444,6 +435,25 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: 18,
         color: 'red',
+    },
+    fullscreenModalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    },
+    fullscreenImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'contain',
+    },
+    fullscreenCloseButton: {
+        position: 'absolute',
+        top: 40,
+        right: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        padding: 10,
+        borderRadius: 5,
     },
 });
 

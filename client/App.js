@@ -28,7 +28,6 @@ import ImageViewScreen from './screens/ImageViewScreen'; // Import the ImageView
 import { AuthProvider } from './context/AuthContext';
 import { RoomProvider } from './context/RoomContext';
 
-
 const Stack = createStackNavigator();
 
 const App = () => {

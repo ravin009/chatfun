@@ -14,6 +14,30 @@ const emojiMap = {
     ':p8:': require('../assets/animations/emoji49.json'),
     ':p9:': require('../assets/animations/emoji50.json'),
     ':p10:': require('../assets/animations/emoji51.json'),
+
+     // new emojis
+     ':a1:': require('../assets/animations/emoji52.json'),
+     ':a2:': require('../assets/animations/emoji53.json'),
+     ':a3:': require('../assets/animations/emoji54.json'),
+     ':a4:': require('../assets/animations/emoji55.json'),
+     ':a5:': require('../assets/animations/emoji56.json'),
+     ':a6:': require('../assets/animations/emoji57.json'),
+     ':a7:': require('../assets/animations/emoji58.json'),
+     ':a8:': require('../assets/animations/emoji59.json'),
+     ':a10:': require('../assets/animations/emoji61.json'),
+     ':b1:': require('../assets/animations/emoji62.json'),
+     ':b2:': require('../assets/animations/emoji63.json'),
+     ':b3:': require('../assets/animations/emoji64.json'),
+     ':b4:': require('../assets/animations/emoji65.json'),
+     ':b5:': require('../assets/animations/emoji66.json'),
+     ':b6:': require('../assets/animations/emoji67.json'),
+     ':b7:': require('../assets/animations/emoji68.json'),
+     ':b8:': require('../assets/animations/emoji69.json'),
+     ':b9:': require('../assets/animations/emoji70.json'),
+     ':b10:': require('../assets/animations/emoji71.json'),
+     // new emojis till this line
+
+
     ':g:': require('../assets/animations/emoji1.json'),
     ':m:': require('../assets/animations/emoji2.json'),
     ':j:': require('../assets/animations/emoji3.json'),
@@ -200,7 +224,7 @@ const styles = StyleSheet.create({
     },
     input: {
         width: '100%',
-        padding: 10,
+        padding: 5, // Decrease padding to reduce height
         borderWidth: 1,
         borderColor: '#ccc',
         borderRadius: 5,

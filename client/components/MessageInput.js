@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Alert, Modal, Text, StyleSheet, ScrollView, Dimensions, Animated } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, TextInput, TouchableOpacity, Alert, Modal, Text, StyleSheet, FlatList, Dimensions, Animated } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import debounce from 'lodash.debounce';
 
 const emojiMap = {
     ':p1:': require('../assets/animations/emoji42.json'),
@@ -17,6 +18,33 @@ const emojiMap = {
     ':p8:': require('../assets/animations/emoji49.json'),
     ':p9:': require('../assets/animations/emoji50.json'),
     ':p10:': require('../assets/animations/emoji51.json'),
+    // new emojis
+    ':a1:': require('../assets/animations/emoji52.json'),
+    ':a2:': require('../assets/animations/emoji53.json'),
+    ':a3:': require('../assets/animations/emoji54.json'),
+    ':a4:': require('../assets/animations/emoji55.json'),
+    ':a5:': require('../assets/animations/emoji56.json'),
+    ':a6:': require('../assets/animations/emoji57.json'),
+    ':a7:': require('../assets/animations/emoji58.json'),
+    ':a8:': require('../assets/animations/emoji59.json'),
+    ':a10:': require('../assets/animations/emoji61.json'),
+    ':b1:': require('../assets/animations/emoji62.json'),
+    ':b2:': require('../assets/animations/emoji63.json'),
+    ':b3:': require('../assets/animations/emoji64.json'),
+    ':b4:': require('../assets/animations/emoji65.json'),
+    ':b5:': require('../assets/animations/emoji66.json'),
+    ':b6:': require('../assets/animations/emoji67.json'),
+    ':b7:': require('../assets/animations/emoji68.json'),
+    ':b8:': require('../assets/animations/emoji69.json'),
+    ':b9:': require('../assets/animations/emoji70.json'),
+    ':b10:': require('../assets/animations/emoji71.json'),
+
+    ':d1:': require('../assets/animations/emoji72.json'),
+    ':d2:': require('../assets/animations/emoji77.json'),
+    
+   
+
+    // new emojis till this line
     ':g:': require('../assets/animations/emoji1.json'),
     ':m:': require('../assets/animations/emoji2.json'),
     ':j:': require('../assets/animations/emoji3.json'),
@@ -62,7 +90,7 @@ const emojiMap = {
 };
 
 const animatedEmojis = Object.keys(emojiMap);
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const MessageInput = ({ sendMessage, sendImage }) => {
     const [message, setMessage] = useState('');
@@ -86,6 +114,15 @@ const MessageInput = ({ sendMessage, sendImage }) => {
         }
     };
 
+    const requestCameraPermissions = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'Camera permissions are required to take a photo.');
+            return false;
+        }
+        return true;
+    };
+
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -101,29 +138,37 @@ const MessageInput = ({ sendMessage, sendImage }) => {
     };
 
     const takePhoto = async () => {
-        let result = await ImagePicker.launchCameraAsync({
-            allowsEditing: false, // Disable editing to send the full, original image
-            quality: 1,
-        });
+        const hasPermission = await requestCameraPermissions();
+        if (!hasPermission) return;
 
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-            const uri = result.assets[0].uri;
-            const timestamp = Date.now();
-            const newUri = `${FileSystem.documentDirectory}live_${timestamp}.jpeg`;
+        try {
+            let result = await ImagePicker.launchCameraAsync({
+                allowsEditing: false, // Disable editing to send the full, original image
+                quality: 1,
+            });
 
-            try {
-                await FileSystem.moveAsync({
-                    from: uri,
-                    to: newUri,
-                });
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const uri = result.assets[0].uri;
+                const timestamp = Date.now();
+                const newUri = `${FileSystem.documentDirectory}live_${timestamp}.jpeg`;
 
-                const contentUri = await FileSystem.getContentUriAsync(newUri);
-                sendImage(contentUri);
-                setModalVisible(false);
-            } catch (error) {
-                console.error('Error renaming file:', error);
-                Alert.alert('Error', 'Failed to rename the image file.');
+                try {
+                    await FileSystem.moveAsync({
+                        from: uri,
+                        to: newUri,
+                    });
+
+                    const contentUri = await FileSystem.getContentUriAsync(newUri);
+                    sendImage(contentUri);
+                    setModalVisible(false);
+                } catch (error) {
+                    console.error('Error renaming file:', error);
+                    Alert.alert('Error', 'Failed to rename the image file.');
+                }
             }
+        } catch (error) {
+            console.error('Error launching camera:', error);
+            Alert.alert('Error', 'Failed to launch the camera.');
         }
     };
 
@@ -147,59 +192,71 @@ const MessageInput = ({ sendMessage, sendImage }) => {
         ]).start();
     };
 
+    const renderEmoji = ({ item }) => (
+        <TouchableOpacity onPress={() => appendEmoji(item)}>
+            <LottieView
+                source={emojiMap[item]}
+                autoPlay
+                loop
+                style={styles.emoji}
+            />
+        </TouchableOpacity>
+    );
+
     return (
-        <View style={styles.inputContainer}>
+        <View style={styles.container}>
             {emojiPickerVisible && (
-                <View style={emojiModalStyles.emojiPickerContainer}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={emojiModalStyles.emojiScrollView}>
-                        {animatedEmojis.map((emoji, index) => (
-                            <TouchableOpacity key={index} onPress={() => appendEmoji(emoji)}>
-                                <LottieView
-                                    source={emojiMap[emoji]}
-                                    autoPlay
-                                    loop
-                                    style={emojiModalStyles.emoji}
-                                />
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                <View style={styles.emojiPickerContainer}>
+                    <FlatList
+                        data={animatedEmojis}
+                        renderItem={renderEmoji}
+                        keyExtractor={(item, index) => index.toString()}
+                        numColumns={8} // Adjust the number of columns as needed
+                        contentContainerStyle={styles.emojiScrollView}
+                        showsVerticalScrollIndicator={true}
+                    />
+                    <TouchableOpacity style={styles.closeButton} onPress={() => setEmojiPickerVisible(false)}>
+                        <Text style={styles.buttonText}>Close</Text>
+                    </TouchableOpacity>
                 </View>
             )}
-            <TextInput
-                style={styles.input}
-                placeholder="Type a message"
-                placeholderTextColor="#888"
-                value={message}
-                onChangeText={handleChangeText}
-                multiline
-                numberOfLines={2}
-            />
-            <Animated.View style={[styles.iconButtonContainer, { transform: [{ scale: scaleValue }] }]}>
-                <TouchableOpacity style={styles.iconButton} onPress={() => { handleSendMessage(); animateButton(); }}>
-                    <LinearGradient
-                        colors={['#6a11cb', '#2575fc']}
-                        style={styles.gradientButton}
-                    >
-                        <FontAwesome name="paper-plane" size={20} color="white" />
-                    </LinearGradient>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconButton} onPress={() => { setModalVisible(true); animateButton(); }}>
-                    <LinearGradient
-                        colors={['#ff512f', '#dd2476']}
-                        style={styles.gradientButton}
-                    >
-                        <FontAwesome name="image" size={20} color="white" />
-                    </LinearGradient>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconButton} onPress={() => { setEmojiPickerVisible(!emojiPickerVisible); animateButton(); }}>
-                    <LinearGradient
-                        colors={['#43e97b', '#38f9d7']}
-                        style={styles.gradientButton}
-                    >
-                        <FontAwesome name="smile-o" size={20} color="white" />
-                    </LinearGradient>
-                </TouchableOpacity>
-            </Animated.View>
+            <View style={styles.inputContainer}>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Type a message"
+                    placeholderTextColor="#888"
+                    value={message}
+                    onChangeText={handleChangeText}
+                    multiline
+                    numberOfLines={2}
+                />
+                <Animated.View style={[styles.iconButtonContainer, { transform: [{ scale: scaleValue }] }]}>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => { handleSendMessage(); animateButton(); }}>
+                        <LinearGradient
+                            colors={['#6a11cb', '#2575fc']}
+                            style={styles.gradientButton}
+                        >
+                            <FontAwesome name="paper-plane" size={20} color="white" />
+                        </LinearGradient>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => { setModalVisible(true); animateButton(); }}>
+                        <LinearGradient
+                            colors={['#ff512f', '#dd2476']}
+                            style={styles.gradientButton}
+                        >
+                            <FontAwesome name="image" size={20} color="white" />
+                        </LinearGradient>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton} onPress={() => { setEmojiPickerVisible(!emojiPickerVisible); animateButton(); }}>
+                        <LinearGradient
+                            colors={['#43e97b', '#38f9d7']}
+                            style={styles.gradientButton}
+                        >
+                            <FontAwesome name="smile-o" size={20} color="white" />
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </Animated.View>
+            </View>
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -273,30 +330,12 @@ const modalStyles = StyleSheet.create({
     },
 });
 
-const emojiModalStyles = StyleSheet.create({
-    emojiPickerContainer: {
-        width: width, // Full width
-        height: 100, // Adjust height as needed
-        backgroundColor: 'rgba(0, 0, 0, 0.8)', // Dark black transparent background
-        padding: 10,
-        position: 'absolute',
-        bottom: 60, // Position above the input container
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emojiScrollView: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emoji: {
-        width: 30, // Adjust size as needed
-        height: 30, // Adjust size as needed
-        margin: 5,
-    },
-});
-
 const styles = StyleSheet.create({
+    container: {
+        position: 'absolute',
+        bottom: 0,
+        width: '100%',
+    },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -304,9 +343,6 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#ccc',
         backgroundColor: '#2c3e50', // Darker background for the input container
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
         height: 60, // Decrease the height of the container
     },
     input: {
@@ -339,6 +375,24 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         width: '100%',
         height: '100%',
+    },
+    emojiPickerContainer: {
+        position: 'absolute',
+        bottom: 60, // Position above the input container
+        width: '100%',
+        maxHeight: height * 0.4, // Adjust height as needed
+        backgroundColor: 'rgba(0, 0, 0, 0.8)', // Dark black transparent background
+        padding: 10,
+        alignItems: 'center',
+    },
+    emojiScrollView: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emoji: {
+        width: 30, // Adjust size as needed
+        height: 30, // Adjust size as needed
+        margin: 5,
     },
 });
 

@@ -33,14 +33,15 @@ const styles = StyleSheet.create({
     },
     inputContainer: {
         flexDirection: 'row',
-        padding: 10,
+        alignItems: 'center',
+        padding: 5,
         borderTopWidth: 1,
         borderTopColor: '#ccc',
+        backgroundColor: '#2c3e50', // Darker background for the input container
         position: 'absolute',
         bottom: 0,
         width: '100%',
-        backgroundColor: '#17202a',
-        alignItems: 'center',
+        height: 60, // Decrease the height of the container
     },
     input: {
         flex: 1,
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         textAlignVertical: 'top', // Ensure text starts from the top
         color: 'white', // Set input text color to white
-        backgroundColor: '#2c3e50', // Darker background for the input box
+        backgroundColor: '#34495e', // Darker background for the input box
         marginRight: 10, // Add margin to the right of the input box
     },
     inputPlaceholder: {
@@ -407,6 +408,22 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         padding: 10,
+    },
+    pencilIcon: {
+        position: 'absolute',
+        bottom: 20,
+        right: 20,
+        backgroundColor: '#007bff',
+        borderRadius: 50,
+        padding: 10,
+    },
+    closeIcon: {
+        padding: 10,
+        backgroundColor: '#ff4d4d',
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 5,
     },
 });
 
