@@ -47,7 +47,7 @@ exports.sendMessage = async (req, res) => {
             roomId,
             userId,
             nickname,
-            avatar: avatar || 'default-avatar-path', // Use default avatar if not provided
+            avatar: avatar || 'default/avatar_1.jpeg', // Set avatar to default if not provided
             message,
             nicknameColor: sender.nicknameColor,
             chatTextColor: sender.chatTextColor
