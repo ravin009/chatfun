@@ -16,6 +16,9 @@ const limitMessagesInRoom = async (roomId) => {
 
 exports.sendMessage = async (req, res) => {
     const { roomId, message, userId, nickname, avatar } = req.body;
+    if (!avatar) {
+        return res.status(400).json({ error: 'Avatar is required' });
+    }
 
     try {
         const sender = await User.findById(userId);
@@ -47,7 +50,7 @@ exports.sendMessage = async (req, res) => {
             roomId,
             userId,
             nickname,
-            avatar: avatar || 'default/avatar_1.jpeg', // Set avatar to default if not provided
+            avatar,
             message,
             nicknameColor: sender.nicknameColor,
             chatTextColor: sender.chatTextColor
@@ -64,7 +67,6 @@ exports.sendMessage = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
-
 
 exports.getMessages = async (req, res) => {
     const { roomId } = req.params;
