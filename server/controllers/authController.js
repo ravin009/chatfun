@@ -19,7 +19,7 @@ exports.register = async (req, res) => {
     try {
         const user = new User({ nickname, email, password, uuid: generateUUID() });
         await user.save();
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' }); // Set to 30 days
         res.status(201).json({ token, user });
     } catch (err) {
         console.error('Error in register:', err);
@@ -54,7 +54,7 @@ exports.login = async (req, res) => {
             return res.status(400).json({ error: 'Invalid credentials' });
         }
         console.log('Password matches');
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' }); // Set to 30 days
         res.json({ token, user });
     } catch (err) {
         console.error('Error in login:', err);
@@ -142,4 +142,3 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ error: 'Server error. Please try again later.' });
     }
 };
-

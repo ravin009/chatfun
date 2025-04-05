@@ -12,8 +12,6 @@ const User = require('./models/User'); // Import User model
 const Room = require('./models/Room'); // Import Room model
 const DefaultRoom = require('./models/DefaultRoom');
 const connectDB = require('./config/db'); // Import connectDB
-const redis = require('redis');
-const amqp = require('amqplib/callback_api');
 
 dotenv.config(); // Load environment variables
 
@@ -27,11 +25,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-app.use(cors({
-    origin: '*', // Allow all origins for testing purposes
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
 app.use(express.json());
 
 // Increase the payload size limit
@@ -39,56 +33,6 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 connectDB(); // Call connectDB to connect to MongoDB
-
-// Redis client setup
-const redisClient = redis.createClient({
-    url: process.env.REDIS_URL
-});
-
-redisClient.on('error', (err) => {
-    console.error('Redis error:', err);
-});
-
-redisClient.connect().then(() => {
-    console.log('Connected to Redis');
-});
-
-// RabbitMQ setup with retry logic
-let channel;
-const connectToRabbitMQ = (retries = 5) => {
-    amqp.connect(process.env.RABBITMQ_URL, (err, connection) => {
-        if (err) {
-            console.error('Failed to connect to RabbitMQ:', err);
-            if (retries > 0) {
-                console.log(`Retrying to connect to RabbitMQ (${retries} retries left)...`);
-                setTimeout(() => connectToRabbitMQ(retries - 1), 5000);
-            } else {
-                throw err;
-            }
-        } else {
-            connection.createChannel((err, ch) => {
-                if (err) {
-                    throw err;
-                }
-                channel = ch;
-                console.log('Connected to RabbitMQ');
-                channel.assertQueue('chat_messages', { durable: false });
-                channel.assertQueue('private_messages', { durable: false });
-            });
-
-            connection.on('error', (err) => {
-                console.error('RabbitMQ connection error:', err);
-            });
-
-            connection.on('close', () => {
-                console.error('RabbitMQ connection closed. Reconnecting...');
-                connectToRabbitMQ();
-            });
-        }
-    });
-};
-
-connectToRabbitMQ();
 
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));

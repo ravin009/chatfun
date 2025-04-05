@@ -9,3 +9,4 @@ router.get('/', protect, getPrivateMessages);
 router.put('/read/:messageId', protect, markAsRead);
 
 module.exports = router;
+

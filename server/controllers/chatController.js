@@ -1,7 +1,6 @@
 const Chat = require('../models/Chat');
 const User = require('../models/User');
 const Room = require('../models/Room');
-const amqp = require('amqplib/callback_api');
 
 const MAX_MESSAGES = 70;
 
@@ -14,22 +13,6 @@ const limitMessagesInRoom = async (roomId) => {
         }
     }
 };
-
-// RabbitMQ setup
-let channel;
-amqp.connect(process.env.RABBITMQ_URL, (err, connection) => {
-    if (err) {
-        throw err;
-    }
-    connection.createChannel((err, ch) => {
-        if (err) {
-            throw err;
-        }
-        channel = ch;
-        console.log('Connected to RabbitMQ');
-        channel.assertQueue('chat_messages', { durable: false });
-    });
-});
 
 exports.sendMessage = async (req, res) => {
     const { roomId, message, userId, nickname, avatar } = req.body;
@@ -77,13 +60,6 @@ exports.sendMessage = async (req, res) => {
         // Increment the chat message count for the sender
         sender.chatMessageCount = (sender.chatMessageCount || 0) + 1;
         await sender.save();
-
-        // Send message to RabbitMQ queue
-        if (channel) {
-            channel.sendToQueue('chat_messages', Buffer.from(JSON.stringify(chat)));
-        } else {
-            console.error('RabbitMQ channel is not available');
-        }
 
         res.status(201).json(chat);
     } catch (err) {

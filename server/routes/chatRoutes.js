@@ -30,3 +30,4 @@ router.get('/:roomId', protect, getMessages);
 router.post('/send-image', protect, upload.single('image'), sendImageMessage);
 
 module.exports = router;
+
