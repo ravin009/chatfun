@@ -22,7 +22,20 @@ const storage = multer.diskStorage({
     },
 });
 
-const upload = multer({ storage });
+const upload = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+        const filetypes = /jpeg|jpg|png|gif/;
+        const mimetype = filetypes.test(file.mimetype);
+        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+        if (mimetype && extname) {
+            return cb(null, true);
+        } else {
+            cb('Error: File upload only supports the following filetypes - ' + filetypes);
+        }
+    },
+    limits: { fileSize: 50 * 1024 * 1024 } // Increase file size limit to 50MB
+});
 
 // Middleware to handle file uploads for profile assets
 exports.uploadProfileAssets = upload.fields([
