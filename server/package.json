@@ -231,6 +231,7 @@
     "neo-async": "^2.6.2",
     "node-abort-controller": "^3.1.1",
     "node-addon-api": "^5.1.0",
+    "node-cron": "^3.0.3",
     "node-device-detector": "^2.1.7",
     "node-dir": "^0.1.17",
     "node-fetch": "^2.7.0",

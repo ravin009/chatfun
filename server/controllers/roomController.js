@@ -1,5 +1,8 @@
+const mongoose = require('mongoose');
 const Room = require('../models/Room');
 const User = require('../models/User');
+const socket = require('../socket');
+const io = socket.getIO();
 
 // Function to generate a short unique ID consisting of uppercase letters and digits
 const generateShortId = (length = 8) => {
@@ -9,6 +12,20 @@ const generateShortId = (length = 8) => {
         result += characters.charAt(Math.floor(Math.random() * characters.length));
     }
     return result;
+};
+
+const emitRoomInvite = (roomId, roomName, invitedUserId) => {
+    let foundSockets = 0;
+    for (let [id, socket] of io.of("/").sockets) {
+        if (socket.userId === invitedUserId) {
+            foundSockets++;
+            socket.emit('roomInvite', { roomId, roomName });
+            console.log(`Emitted roomInvite to socket ${id} for user ${invitedUserId}`);
+        }
+    }
+    if (foundSockets === 0) {
+        console.log(`No active sockets found for invitedUserId ${invitedUserId}`);
+    }
 };
 
 exports.createRoom = async (req, res) => {
@@ -25,16 +42,19 @@ exports.createRoom = async (req, res) => {
         }
 
         const allowedRoles = ['Admin', 'Moderator', 'Super Moderator', 'Co-Admin'];
-        if (user.rating < 1000 && !allowedRoles.includes(user.roles)) {
+        const hasAllowedRole = user.roles.some(role => allowedRoles.includes(role));
+        if (user.rating < 1000 && !hasAllowedRole) {
             return res.status(403).json({ error: 'Your rating is less than 1000, you cannot create a room! Please chat and increase rating.' });
         }
 
         const room = new Room({
             name,
-            roomId: generateShortId(8), // Generate a short room ID of 8 characters
+            roomId: generateShortId(8),
             isPrivate,
             creator: req.user.id,
             owner: req.user.id,
+            accessedUsers: [], // Initialize empty accessedUsers list
+            invitedUsers: [],  // Initialize empty invitedUsers list
         });
         await room.save();
         res.status(201).json(room);
@@ -43,7 +63,6 @@ exports.createRoom = async (req, res) => {
         res.status(500).json({ error: 'Server error. Please try again later.' });
     }
 };
-
 
 exports.getRooms = async (req, res) => {
     try {
@@ -58,14 +77,22 @@ exports.getRooms = async (req, res) => {
 exports.getRoomDetails = async (req, res) => {
     const { roomId } = req.params;
     try {
-        const room = await Room.findOne({ roomId }).populate('creator owner', 'nickname uuid');
+        const room = await Room.findOne({ roomId })
+            .populate('creator owner', 'nickname uuid')
+            .populate('accessedUsers', 'nickname avatar uuid'); // populate accessedUsers with needed fields
+
         if (!room) {
             return res.status(404).json({ error: 'Room not found' });
         }
 
-        // Check if the room is private and the user is not the creator or owner
-        if (room.isPrivate && room.creator._id.toString() !== req.user.id.toString() && room.owner._id.toString() !== req.user.id.toString()) {
-            return res.status(403).json({ error: 'You do not have access to this private room' });
+        if (room.isPrivate) {
+            const userIdStr = req.user.id.toString();
+            const isOwnerOrCreator = room.owner._id.toString() === userIdStr || room.creator._id.toString() === userIdStr;
+            const isAccessedUser = room.accessedUsers.some(user => user._id.toString() === userIdStr);
+
+            if (!isOwnerOrCreator && !isAccessedUser) {
+                return res.status(403).json({ error: 'You do not have access to this private room' });
+            }
         }
 
         res.json(room);
@@ -115,7 +142,7 @@ exports.setReadOnly = async (req, res) => {
         const isCurrentUserRestricted = currentUser.roles.some(role => restrictedRoles.includes(role));
         const isTargetUserRestricted = targetUser.roles.some(role => restrictedRoles.includes(role));
 
-        // Admins can set anyone to read-only mode
+        // Admins can always set read-only
         if (currentUser.roles.includes('Admin')) {
             if (!room.readOnlyUsers.includes(userId)) {
                 room.readOnlyUsers.push(userId);
@@ -124,12 +151,12 @@ exports.setReadOnly = async (req, res) => {
             return res.json(room);
         }
 
-        // Check if the target user is the owner or creator of the room and is in their own room
+        // Prevent restricted users from setting owner or creator to read-only in their own room
         if (isCurrentUserRestricted && (targetUser._id.toString() === room.owner.toString() || targetUser._id.toString() === room.creator.toString()) && roomId === targetUser.roomId) {
             return res.status(403).json({ error: 'You cannot set the owner or creator to read-only mode in their own room' });
         }
 
-        // Check if the target user has restricted roles
+        // Prevent setting read-only for users with restricted roles or owner/creator
         if (isTargetUserRestricted || targetUser._id.toString() === room.owner.toString() || targetUser._id.toString() === room.creator.toString()) {
             return res.status(403).json({ error: 'You cannot set a user with Admin, Moderator, Super Moderator, Co-Admin roles, or the room owner/creator to read-only mode' });
         }
@@ -144,7 +171,6 @@ exports.setReadOnly = async (req, res) => {
         res.status(500).json({ error: 'Server error. Please try again later.' });
     }
 };
-
 
 exports.removeReadOnly = async (req, res) => {
     const { roomId } = req.params;
@@ -166,19 +192,19 @@ exports.removeReadOnly = async (req, res) => {
         const isCurrentUserRestricted = currentUser.roles.some(role => restrictedRoles.includes(role));
         const isTargetUserRestricted = targetUser.roles.some(role => restrictedRoles.includes(role));
 
-        // Admins can remove anyone from read-only mode
+        // Admins can always remove read-only
         if (currentUser.roles.includes('Admin')) {
             room.readOnlyUsers = room.readOnlyUsers.filter(user => user.toString() !== userId.toString());
             await room.save();
             return res.json(room);
         }
 
-        // Check if the target user is the owner or creator of the room and is in their own room
+        // Prevent restricted users from removing read-only for owner or creator in their own room
         if (isCurrentUserRestricted && (targetUser._id.toString() === room.owner.toString() || targetUser._id.toString() === room.creator.toString()) && roomId === targetUser.roomId) {
             return res.status(403).json({ error: 'You cannot remove read-only mode for the owner or creator in their own room' });
         }
 
-        // Check if the target user has restricted roles
+        // Prevent removing read-only for users with restricted roles or owner/creator
         if (isTargetUserRestricted || targetUser._id.toString() === room.owner.toString() || targetUser._id.toString() === room.creator.toString()) {
             return res.status(403).json({ error: 'You cannot remove read-only mode for a user with Admin, Moderator, Super Moderator, Co-Admin roles, or the room owner/creator' });
         }
@@ -192,22 +218,17 @@ exports.removeReadOnly = async (req, res) => {
     }
 };
 
-
 exports.deleteRoom = async (req, res) => {
     const { roomId } = req.params;
     try {
-        console.log(`Attempting to delete room with ID: ${roomId}`);
         const room = await Room.findOne({ roomId });
         if (!room) {
-            console.log(`Room with ID: ${roomId} not found`);
             return res.status(404).json({ error: 'Room not found' });
         }
         if (room.creator.toString() !== req.user.id.toString() && !req.user.roles.includes('Admin')) {
-            console.log(`User with ID: ${req.user.id} is not the creator of the room`);
             return res.status(403).json({ error: 'Only the creator or an admin can delete the room' });
         }
         await Room.deleteOne({ roomId });
-        console.log(`Room with ID: ${roomId} deleted successfully`);
         res.json({ message: 'Room deleted successfully' });
     } catch (err) {
         console.error('Error in deleteRoom:', err);
@@ -227,6 +248,13 @@ exports.changeRoomPrivacy = async (req, res) => {
             return res.status(403).json({ error: 'Only the owner, creator, or an admin can change room privacy' });
         }
         room.isPrivate = isPrivate;
+
+        // If room is made public, clear invitedUsers and accessedUsers
+        if (!isPrivate) {
+            room.invitedUsers = [];
+            room.accessedUsers = [];
+        }
+
         await room.save();
         res.json(room);
     } catch (err) {
@@ -239,26 +267,21 @@ exports.changeRoomColor = async (req, res) => {
     const { roomId } = req.params;
     const { backgroundColor } = req.body;
     try {
-        console.log(`Attempting to change color of room with ID: ${roomId} to ${backgroundColor}`);
         const room = await Room.findOne({ roomId });
         if (!room) {
-            console.log(`Room with ID: ${roomId} not found`);
             return res.status(404).json({ error: 'Room not found' });
         }
         if (room.owner.toString() !== req.user.id.toString() && room.creator.toString() !== req.user.id.toString() && !req.user.roles.includes('Admin')) {
-            console.log(`User with ID: ${req.user.id} is not the owner or creator of the room`);
             return res.status(403).json({ error: 'Only the owner, creator, or an admin can change room color' });
         }
         room.backgroundColor = backgroundColor;
         await room.save();
-        console.log(`Room with ID: ${roomId} color changed to ${backgroundColor} successfully`);
         res.json(room);
     } catch (err) {
         console.error('Error in changeRoomColor:', err);
         res.status(500).json({ error: 'Server error. Please try again later.' });
     }
 };
-
 
 exports.getUsersInRoom = async (req, res) => {
     const { roomId } = req.params;
@@ -280,6 +303,135 @@ exports.getUserCounts = async (req, res) => {
         res.json({ maleCount, femaleCount });
     } catch (err) {
         console.error('Error in getUserCounts:', err);
+        res.status(500).json({ error: 'Server error. Please try again later.' });
+    }
+};
+
+exports.inviteUser = async (req, res) => {
+    const { roomId, userIdToInvite } = req.body;
+    try {
+        const room = await Room.findOne({ roomId });
+        if (!room) {
+            return res.status(404).json({ error: 'Room not found' });
+        }
+
+        const userToInvite = await User.findById(userIdToInvite);
+        if (!userToInvite) {
+            return res.status(404).json({ error: 'User to invite not found' });
+        }
+
+        if (room.isPrivate) {
+            if (room.owner.toString() !== req.user.id && room.creator.toString() !== req.user.id) {
+                return res.status(403).json({ error: 'Only owner or creator can invite users to private rooms' });
+            }
+        }
+
+        // Add to invitedUsers only if not already invited or accessed
+        if (!room.invitedUsers.includes(userIdToInvite) && !room.accessedUsers.includes(userIdToInvite)) {
+            room.invitedUsers.push(userIdToInvite);
+            await room.save();
+        }
+
+        // Emit invite only to the invited user’s sockets with current room info
+        emitRoomInvite(room.roomId, room.name, userIdToInvite);
+
+        res.json({ message: 'User invited successfully', room });
+    } catch (err) {
+        console.error('Error in inviteUser:', err);
+        res.status(500).json({ error: 'Server error. Please try again later.' });
+    }
+};
+
+exports.acceptInvitation = async (req, res) => {
+    const { roomId } = req.params;
+    try {
+        const room = await Room.findOne({ roomId });
+        if (!room) {
+            return res.status(404).json({ error: 'Room not found' });
+        }
+
+        const userId = new mongoose.Types.ObjectId(req.user.id);
+
+        if (!Array.isArray(room.invitedUsers)) {
+            console.error('invitedUsers is not an array:', room.invitedUsers);
+            return res.status(500).json({ error: 'Room data corrupted: invitedUsers not an array' });
+        }
+
+        if (!Array.isArray(room.accessedUsers)) {
+            room.accessedUsers = [];
+        }
+
+        const isInvited = room.invitedUsers.some(id => id.equals(userId));
+        const isAccessed = room.accessedUsers.some(id => id.equals(userId));
+
+        if (!isInvited && !isAccessed) {
+            return res.status(403).json({ error: 'You are not invited to this private room' });
+        }
+
+        // If user is not already in accessedUsers, add them
+        if (!isAccessed) {
+            room.accessedUsers.push(userId);
+        }
+
+        // Remove user from invitedUsers if present
+        room.invitedUsers = room.invitedUsers.filter(id => !id.equals(userId));
+
+        await room.save();
+
+        await User.findByIdAndUpdate(userId, { roomId: room.roomId });
+
+        const populatedRoom = await Room.findOne({ roomId })
+            .populate('creator owner', 'nickname uuid')
+            .populate('invitedUsers', 'nickname avatar uuid')
+            .populate('accessedUsers', 'nickname avatar uuid');
+
+        return res.json({ message: 'Invitation accepted', room: populatedRoom });
+    } catch (err) {
+        console.error('Error in acceptInvitation:', err.message);
+        console.error(err.stack);
+        return res.status(500).json({ error: 'Server error. Please try again later.' });
+    }
+};
+
+  
+exports.rejectInvitation = async (req, res) => {
+    const { roomId } = req.params;
+    try {
+        const room = await Room.findOne({ roomId });
+        if (!room) {
+            return res.status(404).json({ error: 'Room not found' });
+        }
+
+        room.invitedUsers = room.invitedUsers.filter(id => id.toString() !== req.user.id.toString());
+        await room.save();
+
+        res.json({ message: 'Invitation rejected', room });
+    } catch (err) {
+        console.error('Error in rejectInvitation:', err);
+        res.status(500).json({ error: 'Server error. Please try again later.' });
+    }
+};
+
+// New: Revoke access (remove user from accessedUsers)
+exports.revokeAccess = async (req, res) => {
+    const { roomId } = req.params;
+    const { userId } = req.body;
+    try {
+        const room = await Room.findOne({ roomId });
+        if (!room) {
+            return res.status(404).json({ error: 'Room not found' });
+        }
+
+        if (room.owner.toString() !== req.user.id && room.creator.toString() !== req.user.id && !req.user.roles.includes('Admin')) {
+            return res.status(403).json({ error: 'Only the owner, creator, or an admin can revoke access' });
+        }
+
+        room.accessedUsers = room.accessedUsers.filter(id => id.toString() !== userId);
+        await room.save();
+
+        res.json({ message: 'Access revoked successfully', room });
+    } catch (err) {
+        console.error('Error in revokeAccess:', err);
         res.status(500).json({ error: 'Server error. Please try again later.' });
     }
 };

@@ -6,7 +6,9 @@ const RoomSchema = new mongoose.Schema({
     isPrivate: { type: Boolean, default: false },
     creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    readOnlyUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Add this line
+    readOnlyUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    accessedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Users allowed to join private room (besides owner/creator)
+    invitedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Pending invited users
     backgroundColor: { type: String, default: '#17202A' },
     createdAt: { type: Date, default: Date.now },
 });

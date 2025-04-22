@@ -33,9 +33,14 @@ exports.sendMessage = async (req, res) => {
             return res.status(404).json({ error: 'Room not found' });
         }
 
-        // Check if the room is private and the user is not the creator or owner
-        if (room.isPrivate && room.creator._id.toString() !== userId && room.owner._id.toString() !== userId) {
-            return res.status(403).json({ error: 'You do not have access to this private room' });
+        if (room.isPrivate) {
+            const userIdStr = userId.toString();
+            const isOwnerOrCreator = room.creator.toString() === userIdStr || room.owner.toString() === userIdStr;
+            const isAccessedUser = room.accessedUsers.some(id => id.toString() === userIdStr);
+
+            if (!isOwnerOrCreator && !isAccessedUser) {
+                return res.status(403).json({ error: 'You do not have access to this private room' });
+            }
         }
 
         // Check if the sender is blocked by the recipient

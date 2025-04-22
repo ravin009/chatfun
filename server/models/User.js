@@ -50,6 +50,8 @@ const UserSchema = new mongoose.Schema({
     chatMessageCount: { type: Number, default: 0 },
     privateMessageCount: { type: Number, default: 0 },
     isBanned: { type: Boolean, default: false },
+
+
 });
 
 UserSchema.pre('save', async function (next) {
