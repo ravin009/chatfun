@@ -15,7 +15,12 @@ const transporter = nodemailer.createTransport({
 });
 
 exports.register = async (req, res) => {
-    const { nickname, email, password } = req.body;
+    let { nickname, email, password } = req.body;
+
+    // Trim nickname and email to remove leading/trailing spaces
+    if (typeof nickname === 'string') nickname = nickname.trim();
+    if (typeof email === 'string') email = email.trim();
+
     try {
         const user = new User({ nickname, email, password, uuid: generateUUID() });
         await user.save();
@@ -35,7 +40,11 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-    const { identifier, password } = req.body;
+    let { identifier, password } = req.body;
+
+    // Trim identifier to remove leading/trailing spaces
+    if (typeof identifier === 'string') identifier = identifier.trim();
+
     try {
         const user = await User.findOne({ $or: [{ email: identifier }, { nickname: identifier }, { uuid: identifier }] });
         if (!user) {
